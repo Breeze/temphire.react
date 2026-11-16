@@ -1,0 +1,71 @@
+/* Port of the styles in the Angular client's resource-mgt/sections/resource-address-list.component.ts. */
+
+.addresses {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+/* The cards flow in a row and wrap when the row is full.  They all have the same content
+   width (same labels, same field widths), so they line up as equals. */
+.addresses__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.address {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--temphire-border);
+  border-radius: 4px;
+}
+
+.address__header {
+  font-weight: 700;
+}
+
+/* The header is outside this wrapping row, so its length does not change the card's width. */
+.address__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: flex-start;
+}
+
+.address__fields {
+  display: grid;
+  grid-template-columns: auto minmax(12rem, 18rem);
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+}
+
+.address__fields input {
+  width: 100%;
+}
+
+.address__zipcode {
+  max-width: 8rem;
+}
+
+.address__state {
+  width: 100%;
+}
+
+.address__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.address__primary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}

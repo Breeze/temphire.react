@@ -1,0 +1,70 @@
+/*
+ * Port of the styles in the Angular client's resource-mgt/resource-search.component.ts.  The grid
+ * rules target Mantine's Table - the `search__table` class, and a `data-selected` attribute on the
+ * selected row - instead of Optimus UI's p-table classes; the look is the same.
+ */
+
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.search__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search__text {
+  width: 18rem;
+}
+
+.search__error {
+  margin: 0;
+  color: var(--mantine-color-red-7);
+}
+
+/* The grid: a tinted header, rounded, a soft hover and a clear selected row. */
+.search__grid {
+  border: 1px solid var(--temphire-border);
+  border-radius: var(--temphire-radius);
+  overflow: hidden;
+}
+
+.search__table thead > tr > th {
+  background: linear-gradient(180deg, #f4f8fc, #e9f1f9);
+  color: var(--temphire-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-color: var(--temphire-border);
+}
+
+.search__table tbody > tr {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.search__table tbody > tr > td {
+  border-color: rgba(29, 83, 128, 0.06);
+}
+
+.search__table tbody > tr:not([data-selected]):hover {
+  background: #f2f7fc;
+}
+
+.search__table tbody > tr[data-selected] {
+  background: linear-gradient(90deg, #dcebf8, #eef5fb);
+  color: var(--temphire-accent-deep);
+  font-weight: 600;
+}
+
+.search__table tbody > tr[data-selected] > td:first-child {
+  box-shadow: inset 4px 0 0 var(--temphire-accent);
+}
+
+.search__empty {
+  color: var(--temphire-muted);
+}

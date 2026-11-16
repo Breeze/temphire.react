@@ -1,0 +1,58 @@
+/*
+ * Port of the styles in the Angular client's resource-mgt/resource-detail.component.ts: the tabs as
+ * pills on a tinted strip, the active one raised, the panel below in the card.  The selectors
+ * target Mantine's Tabs instead of Optimus UI's p-tabs.
+ */
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.detail__tabs {
+  display: block;
+  overflow: hidden;
+}
+
+.detail__tabs .mantine-Tabs-list {
+  gap: 0.35rem;
+  padding: 0.6rem 0.75rem 0;
+  background: linear-gradient(180deg, #f1f6fb, #e8f0f8);
+  border-bottom: 1px solid var(--temphire-border);
+}
+
+/* Mantine draws the list's bottom border and the active tab's underline with ::before. */
+.detail__tabs .mantine-Tabs-list::before {
+  display: none;
+}
+
+.detail__tabs .mantine-Tabs-tab {
+  border: none;
+  border-radius: 10px 10px 0 0;
+  padding: 0.6rem 1.1rem;
+  margin-bottom: 0;
+  color: var(--temphire-muted);
+  font-weight: 600;
+  font-size: 14px;
+  background: transparent;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.detail__tabs .mantine-Tabs-tab:not([data-active]):hover {
+  color: var(--temphire-accent);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.detail__tabs .mantine-Tabs-tab[data-active] {
+  color: var(--temphire-accent);
+  background: #ffffff;
+  box-shadow: 0 -2px 8px rgba(15, 47, 77, 0.08);
+}
+
+.detail__tabs .mantine-Tabs-panel {
+  padding: 1.25rem 1.4rem 1.5rem;
+  background: #ffffff;
+}

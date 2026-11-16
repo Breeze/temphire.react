@@ -1,0 +1,7 @@
+/* Port of the styles in the Angular client's resource-mgt/sections/resource-contact-info.component.ts. */
+
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
