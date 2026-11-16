@@ -9,19 +9,19 @@ namespace TempHire.Server.Auth
     /// protected resources, each identified by a URI as RFC 8707 requires:
     /// </para>
     /// <list type="bullet">
-    ///   <item><c>{origin}/api</c>: the Breeze, account and agent endpoints the Angular app calls.</item>
+    ///   <item><c>{origin}/api</c>: the Breeze, account and agent endpoints the React app calls.</item>
     ///   <item><c>{origin}/mcp</c>: the MCP endpoint, for Quinn and for any other MCP client.</item>
     /// </list>
     /// <para>
     /// A token's audience names the resources it may be used at, and each resource accepts only
-    /// tokens issued for it (see <see cref="AudienceCheck"/>).  The Angular app's tokens are issued
+    /// tokens issued for it (see <see cref="AudienceCheck"/>).  The React app's tokens are issued
     /// for both, because Quinn passes the user's token on to the MCP endpoint.  A token an MCP client
     /// such as Claude Code obtains is issued for the MCP endpoint only, so it cannot be used to call
     /// the Breeze API.
     /// </para>
     /// <para>
-    /// The origin is the server's own (http://localhost:5000 in development).  A server can answer
-    /// on several - the launch profile has https://localhost:5001 as well - so every one is
+    /// The origin is the server's own (http://localhost:5100 in development).  A server can answer
+    /// on several - the launch profile has https://localhost:5101 as well - so every one is
     /// registered, from <c>OAuth:Origins</c> if set (behind a proxy, set it to the public origin),
     /// otherwise from the URLs the server listens on.
     /// </para>
@@ -30,7 +30,7 @@ namespace TempHire.Server.Auth
     {
         public const string SectionName = "OAuth";
 
-        /// <summary>The Angular app, a public client: it has no secret and proves itself with PKCE.</summary>
+        /// <summary>The React app, a public client: it has no secret and proves itself with PKCE.</summary>
         public const string SpaClientId = "temphire-spa";
 
         /// <summary>Access to the company's staffing data, through the API or the MCP endpoint.</summary>
@@ -39,13 +39,13 @@ namespace TempHire.Server.Auth
         public const string ApiPath = "/api";
         public const string McpPath = "/mcp";
 
-        /// <summary>Where the authorization server sends the browser back to the Angular app.</summary>
+        /// <summary>Where the authorization server sends the browser back to the React app.</summary>
         public const string SpaCallbackPath = "/auth/callback";
 
         /// <summary>The server's public origins, without a trailing slash.</summary>
         public IReadOnlyList<string> Origins { get; }
 
-        /// <summary>The origins the Angular app is served from: the dev server, and the server itself.</summary>
+        /// <summary>The origins the React app is served from: the dev server, and the server itself.</summary>
         public IReadOnlyList<string> SpaOrigins { get; }
 
         public OAuthSettings(IConfiguration configuration)
@@ -53,7 +53,7 @@ namespace TempHire.Server.Auth
             var origins = configuration.GetSection($"{SectionName}:Origins").Get<string[]>();
             if (origins == null || origins.Length == 0)
             {
-                origins = (configuration["urls"] ?? "http://localhost:5000")
+                origins = (configuration["urls"] ?? "http://localhost:5100")
                     .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             }
 
