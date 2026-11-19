@@ -1,5 +1,4 @@
 // Copied unchanged from the Angular client's src/app/core/services/resource-mgt-unit-of-work.ts - it has no Angular in it.
-import { ValidationService } from '@ideablade/validation';
 import { EntityManager, EntityQuery, FilterQueryOp } from 'breeze-client';
 
 import {
@@ -54,12 +53,8 @@ export class ResourceMgtUnitOfWork extends UnitOfWork {
 
   readonly staffingResourceFactory: StaffingResourceFactory;
 
-  constructor(
-    emProvider: EntityManagerProvider,
-    validation: ValidationService,
-    onCommitted?: () => void,
-  ) {
-    super(emProvider, validation, onCommitted);
+  constructor(emProvider: EntityManagerProvider, onCommitted?: () => void) {
+    super(emProvider, onCommitted);
 
     this.staffingResources = this.createRepository(StaffingResource);
     this.addresses = this.createRepository(Address);

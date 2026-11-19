@@ -1,4 +1,3 @@
-import { ValidationService } from '@ideablade/validation';
 
 import { ChangeNotifier } from './change-notifier';
 import { EntityManagerProvider } from './entity-manager-provider';
@@ -22,10 +21,7 @@ export class UnitOfWorkManager extends ChangeNotifier {
   private readonly cache = new Map<string, ResourceMgtUnitOfWork>();
   private saveCount = 0;
 
-  constructor(
-    private readonly emProvider: EntityManagerProvider,
-    private readonly validation: ValidationService,
-  ) {
+  constructor(private readonly emProvider: EntityManagerProvider) {
     super();
   }
 
@@ -51,7 +47,7 @@ export class UnitOfWorkManager extends ChangeNotifier {
 
   /** Creates an unregistered unit of work - port of `IUnitOfWorkManager.Create`. */
   create(): ResourceMgtUnitOfWork {
-    return new ResourceMgtUnitOfWork(this.emProvider, this.validation, () => {
+    return new ResourceMgtUnitOfWork(this.emProvider, () => {
       this.saveCount++;
       this.notify();
     });

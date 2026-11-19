@@ -563,7 +563,7 @@ TempHire keeps Breeze's model and tells React about the changes:
    subscribers (`unit-of-work.ts`).
 2. **Components that show entities subscribe to it** with `useUnitOfWork(unitOfWork)`. Every
    section of the detail screen does; so does `ResourceMgt`, whose `canSave` depends on
-   `hasChanges()` and `hasValidationErrors()`.
+   `hasChanges()` and on the continuous validation of the unit of work (`validateEntityStore()`).
 3. **Inputs write straight to the entity** (`EntityFields.tsx`), and the change comes back round
    through the store. The entity stays the single source of truth, as it was with `ngModel`.
 4. **Forms re-validate on every change in the unit of work.** `ValidationForm` listens to the
