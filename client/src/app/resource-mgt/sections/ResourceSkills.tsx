@@ -1,3 +1,4 @@
+import { ValidationForm } from '@ideablade/validation/react';
 import { Button } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
@@ -45,24 +46,26 @@ export function ResourceSkills({ staffingResource, readOnly, unitOfWork }: Secti
       ) : (
         <div className="skills__list">
           {skills.map((skill) => (
-            <div key={skill.id} className="skills__row">
-              <EntityTextInput
-                className="skills__input"
-                aria-label="Skill"
-                entity={skill}
-                property="description"
-                readOnly={readOnly}
-              />
-              <Button
-                size="xs"
-                color="red"
-                variant="subtle"
-                disabled={readOnly}
-                onClick={() => staffingResource.deleteSkill(skill)}
-              >
-                Delete
-              </Button>
-            </div>
+            <ValidationForm key={skill.id} model={skill}>
+              <div className="skills__row">
+                <EntityTextInput
+                  className="skills__input"
+                  aria-label="Skill"
+                  entity={skill}
+                  property="description"
+                  readOnly={readOnly}
+                />
+                <Button
+                  size="xs"
+                  color="red"
+                  variant="subtle"
+                  disabled={readOnly}
+                  onClick={() => staffingResource.deleteSkill(skill)}
+                >
+                  Delete
+                </Button>
+              </div>
+            </ValidationForm>
           ))}
         </div>
       )}

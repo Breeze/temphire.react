@@ -1,3 +1,6 @@
+import { createValidationService } from '@ideablade/validation';
+import { breezeModelType } from '@ideablade/validation/breeze';
+import { ValidationProvider } from '@ideablade/validation/react';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { Entity } from 'breeze-client';
 import { vi } from 'vitest';
@@ -37,6 +40,7 @@ describe('ResourceAddressList', () => {
     class TestUnitOfWork extends ChangeNotifier {
       private count = 0;
       readonly version = () => this.count;
+      readonly validationErrors = () => [];
       readonly addressTypes = { allInCache: () => [addressType] };
       readonly states = { allInCache: () => [] };
       constructor() {
@@ -62,12 +66,17 @@ describe('ResourceAddressList', () => {
         }),
     });
 
+    // The fields use the validation framework's `ValidationForm`; entities supply their own type.
+    const validation = createValidationService({ modelTypeResolvers: [breezeModelType] });
+
     const { container } = renderWithMantine(
-      <ResourceAddressList
-        staffingResource={staffingResource as unknown as StaffingResource}
-        readOnly={false}
-        unitOfWork={new TestUnitOfWork() as unknown as ResourceMgtUnitOfWork}
-      />,
+      <ValidationProvider service={validation}>
+        <ResourceAddressList
+          staffingResource={staffingResource as unknown as StaffingResource}
+          readOnly={false}
+          unitOfWork={new TestUnitOfWork() as unknown as ResourceMgtUnitOfWork}
+        />
+      </ValidationProvider>,
     );
 
     return { rows: () => container.querySelectorAll('.address').length };

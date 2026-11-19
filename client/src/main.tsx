@@ -3,6 +3,7 @@ import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
 import './styles.css';
 
+import { ValidationProvider } from '@ideablade/validation/react';
 import { MantineProvider } from '@mantine/core';
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';
@@ -57,12 +58,15 @@ createRoot(document.getElementById('root')!).render(
     <MantineProvider theme={temphireTheme}>
       <ErrorBoundary>
         <AppServicesProvider services={services}>
-          {/* Dialogs (dialog.service.tsx) render here, inside the services' context. */}
-          <ModalsProvider>
-            {/* The toasts - `<p-toast />` in Angular. */}
-            <Notifications position="top-right" />
-            <RouterProvider router={router} />
-          </ModalsProvider>
+          {/* The validation hooks' service - `provideValidation` in Angular. */}
+          <ValidationProvider service={services.validation}>
+            {/* Dialogs (dialog.service.tsx) render here, inside the services' context. */}
+            <ModalsProvider>
+              {/* The toasts - `<p-toast />` in Angular. */}
+              <Notifications position="top-right" />
+              <RouterProvider router={router} />
+            </ModalsProvider>
+          </ValidationProvider>
         </AppServicesProvider>
       </ErrorBoundary>
     </MantineProvider>

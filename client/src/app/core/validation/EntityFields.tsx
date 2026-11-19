@@ -9,26 +9,37 @@ import {
   TextareaProps,
 } from '@mantine/core';
 import { DateInput, DateInputProps } from '@mantine/dates';
+import { useFieldValidation } from '@ideablade/validation/react';
 import { Entity } from 'breeze-client';
 
-import { useBreezeField } from './use-breeze-field';
-
 /**
- * Inputs bound to one property of a Breeze entity, showing that property's Breeze validation.
+ * Inputs bound to one property of a Breeze entity, showing that property's validation errors.
  *
- * New in the React port; they take the place of `[(ngModel)]="address.city"` plus the Angular
- * client's `breezeField` directive, which every entity input in the Angular templates carried:
+ * New in the React port; they take the place of `[(ngModel)]="address.city"` in a form that
+ * validates the entity with `@ideablade/validation` (`<form ngForm [validationModel]="address">`
+ * in the Angular client):
  *
  * ```html
- * <input pInputText [(ngModel)]="address.city" [breezeField]="address" breezeProperty="city"
- *        #city="breezeField" [invalid]="city.invalid()" />
+ * <form ngForm [validationModel]="address">
+ *   <input pInputText name="city" [(ngModel)]="address.city" #city="ngModel" [invalid]="city.invalid" />
+ * </form>
  * ```
  *
  * becomes
  *
  * ```tsx
- * <EntityTextInput entity={address} property="city" />
+ * <ValidationForm model={address}>
+ *   <EntityTextInput entity={address} property="city" />
+ * </ValidationForm>
  * ```
+ *
+ * **Where the errors come from.**  `ValidationForm` validates the entity as a whole with the
+ * validation metadata, and each input shows the errors about its property (`useFieldValidation`):
+ * Breeze's own rules - the server's `[Required]` and `[MaxLength]`, through the `breeze`
+ * validator - and the server's validation metadata alike, including a rule about the whole entity
+ * that names the property.  "At least 18 years old when hired" names the date of birth and the
+ * hire date, so it shows on both, and changing either checks it again.  Outside a
+ * `ValidationForm`, an input shows no errors.
  *
  * **Two-way binding, React style.**  React has no `[(ngModel)]`.  An input is *controlled*: it
  * shows the `value` it is given, and reports each keystroke through `onChange`; the component
@@ -53,7 +64,7 @@ function write<T extends Entity>(entity: T, property: keyof T & string, value: u
   (entity as Record<string, unknown>)[property] = value;
 }
 
-/** Mantine's props for showing a Breeze error: red border, message on hover, `aria-invalid`. */
+/** Mantine's props for showing an error: red border, message on hover, `aria-invalid`. */
 function errorProps(message: string | null) {
   return {
     error: !!message,
@@ -67,7 +78,7 @@ export function EntityTextInput<T extends Entity>({
   property,
   ...rest
 }: EntityProps<T> & Omit<TextInputProps, 'value' | 'onChange' | 'error'>) {
-  const { message } = useBreezeField(entity, property);
+  const { message } = useFieldValidation(property);
   return (
     <TextInput
       {...rest}
@@ -83,7 +94,7 @@ export function EntityTextarea<T extends Entity>({
   property,
   ...rest
 }: EntityProps<T> & Omit<TextareaProps, 'value' | 'onChange' | 'error'>) {
-  const { message } = useBreezeField(entity, property);
+  const { message } = useFieldValidation(property);
   return (
     <Textarea
       {...rest}
@@ -100,7 +111,7 @@ export function EntitySelect<T extends Entity>({
   property,
   ...rest
 }: EntityProps<T> & Omit<SelectProps, 'value' | 'onChange' | 'error'>) {
-  const { message } = useBreezeField(entity, property);
+  const { message } = useFieldValidation(property);
   return (
     <Select
       {...rest}
@@ -111,21 +122,35 @@ export function EntitySelect<T extends Entity>({
   );
 }
 
-/** A number; an empty box sets the property to null, so Breeze's `required` can catch it. */
+/** A number; an empty box sets the property to null, so a `required` rule can catch it. */
 export function EntityNumberInput<T extends Entity>({
   entity,
   property,
   ...rest
 }: EntityProps<T> & Omit<NumberInputProps, 'value' | 'onChange' | 'error'>) {
-  const { message } = useBreezeField(entity, property);
+  const { message } = useFieldValidation(property);
   return (
     <NumberInput
       {...rest}
       {...errorProps(message)}
       value={(read(entity, property) as number | null) ?? ''}
-      onChange={(value) => write(entity, property, typeof value === 'number' ? value : null)}
+      onChange={(value) => write(entity, property, toNumber(value))}
     />
   );
+}
+
+/**
+ * The number in what `NumberInput` reports.  It reports a number only when the text is one it
+ * would not reformat: $65.00 - how a rate reads with `fixedDecimalScale` - comes as the
+ * string `'65.00'`, as do `'65.'` and `'0.50'` while typing.  Those are numbers all the same; only
+ * an empty box (or a lone `-`) has none.
+ */
+function toNumber(value: number | string): number | null {
+  if (typeof value === 'number') {
+    return value;
+  }
+  const number = value.trim() === '' ? NaN : Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 /**
@@ -137,7 +162,7 @@ export function EntityDateInput<T extends Entity>({
   property,
   ...rest
 }: EntityProps<T> & Omit<DateInputProps, 'value' | 'onChange' | 'error'>) {
-  const { message } = useBreezeField(entity, property);
+  const { message } = useFieldValidation(property);
   return (
     <DateInput
       {...rest}

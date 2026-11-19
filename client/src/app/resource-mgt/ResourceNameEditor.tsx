@@ -1,10 +1,8 @@
+import { useValidationService } from '@ideablade/validation/react';
 import { Button, Group, Stack, TextInput } from '@mantine/core';
-import { useForm } from '@mantine/form';
+import { FormErrors, useForm } from '@mantine/form';
 
-import { StaffingResource } from '../core/model';
-import { useServices } from '../core/services/app-services';
 import { CloseDialog } from '../core/services/dialog.service';
-import { breezeValidate } from '../core/validation/breeze-validators';
 
 export interface ResourceName {
   firstName: string;
@@ -29,20 +27,26 @@ interface ResourceNameEditorProps {
  * the values, runs a validation function per field, and wires inputs up with `getInputProps`.
  *
  * There are still no hand-written rules here.  The names end up on a `StaffingResource`, so the form
- * applies `StaffingResource`'s own Breeze validators (`breezeValidate`): first and last name
- * required, and at most 100 characters each, from `[Required]` / `[StringLength]` on the server's
- * model.  Errors show once the user has left a field (`validateInputOnBlur`), as the Angular form
+ * applies the `ResourceName` validation metadata (`clientValidationMetadata`), whose properties
+ * inherit `StaffingResource`'s with `from`: first and last name required, and at most 100
+ * characters each, from `[Required]` / `[StringLength]` on the server's model, which Breeze
+ * carries.  `useForm`'s `validate` function hands the values to the validation service and files
+ * each error under the fields it names (`propertyNames`).  Errors show once the user has left a field (`validateInputOnBlur`), as the Angular form
  * showed them once a field was touched.
  */
 export function ResourceNameEditor({ name, onClose }: ResourceNameEditorProps) {
-  const type = useServices().emProvider.metadataStore.getAsEntityType(StaffingResource);
+  const validation = useValidationService();
 
   const form = useForm<ResourceName>({
     initialValues: { firstName: '', middleName: '', lastName: '', ...name },
-    validate: {
-      firstName: breezeValidate(type.getDataProperty('firstName')),
-      middleName: breezeValidate(type.getDataProperty('middleName')),
-      lastName: breezeValidate(type.getDataProperty('lastName')),
+    validate: (values) => {
+      const errors: FormErrors = {};
+      for (const error of validation.validateModelSync(values, 'ResourceName')) {
+        for (const property of error.propertyNames) {
+          errors[property] ??= error.errorMessage;
+        }
+      }
+      return errors;
     },
     validateInputOnBlur: true,
   });

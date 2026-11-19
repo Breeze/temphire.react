@@ -1,3 +1,4 @@
+import { ValidationProvider, useValidationScope } from '@ideablade/validation/react';
 import { Loader } from '@mantine/core';
 import {
   IconDeviceFloppy,
@@ -79,6 +80,14 @@ export function ResourceMgt() {
   // Re-render whenever an entity in the active unit of work changes - an edit, a save, a delete, a
   // new validation error - so that `canSave` and the detail below are worked out afresh.
   useUnitOfWork(unitOfWork);
+
+  /**
+   * This route's validation service: the app's metadata and validators, with the entities of the
+   * unit of work being shown as its entity store - what `store(type)` reads in a rule such as "a
+   * resource has at least one address", and what tells the forms below that something changed.
+   * (Angular: `provideValidationScope()` and an effect calling `setEntityStore`.)
+   */
+  const validation = useValidationScope(unitOfWork?.entityStore);
 
   const staffingResourceId = staffingResource?.id ?? null;
   const isReadOnly = editMode === 'view';
@@ -535,11 +544,13 @@ export function ResourceMgt() {
 
       <section className="resource-mgt__detail">
         {staffingResource && unitOfWork ? (
-          <ResourceDetail
-            staffingResource={staffingResource}
-            readOnly={isReadOnly}
-            unitOfWork={unitOfWork}
-          />
+          <ValidationProvider service={validation}>
+            <ResourceDetail
+              staffingResource={staffingResource}
+              readOnly={isReadOnly}
+              unitOfWork={unitOfWork}
+            />
+          </ValidationProvider>
         ) : (
           <p className="resource-mgt__empty">
             Select a staffing resource, or choose Add to create one.

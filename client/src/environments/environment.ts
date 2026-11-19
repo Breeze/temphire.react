@@ -19,6 +19,8 @@ export const environment = {
   production: !development,
   /** Root of the Breeze controller - see `BreezeController`'s `[Route("api/breeze/[action]")]`. */
   breezeApiRoot: `${server}/api/breeze`,
+  /** Root of the validation controller: the validation metadata, see `ValidationController`. */
+  validationApiRoot: `${server}/api/validation`,
   /** Root of the account controller: who the signed-in user is. */
   accountApiRoot: `${server}/api/account`,
   /** Root of the agent controller - Quinn, see `AgentController`. */
