@@ -1,7 +1,11 @@
+import { ModelValidationMetadataMap, ValidationService } from '@ideablade/validation';
+import { installBreezeValidators } from '@ideablade/validation/breeze';
 import { DataService, EntityManager, EntityQuery, MetadataStore } from 'breeze-client';
 
 import { environment } from '../../../environments/environment';
+import { displayNameMetadata } from '../model-display-names';
 import { registerModel } from '../model-registration';
+import { getJson } from './api-fetch';
 
 /**
  * Creates and seeds EntityManagers.
@@ -20,6 +24,9 @@ import { registerModel } from '../model-registration';
  * `Address.state` / `Address.addressType` without a server round trip.
  */
 export class EntityManagerProvider {
+  /** @param validation the app's validation service, which gets the server's validation metadata. */
+  constructor(private readonly validation: ValidationService) {}
+
   private readonly dataService = new DataService({
     serviceName: environment.breezeApiRoot,
     hasServerMetadata: true,
@@ -64,11 +71,35 @@ export class EntityManagerProvider {
     return this.preparePromise;
   }
 
-  /** Fetches the metadata and registers the model on the shared store, once per page. */
+  /**
+   * Fetches the metadata and registers the model on the shared store, once per page.
+   *
+   * Two kinds of metadata come from the server, in parallel:
+   *
+   *  - Breeze's, built from the EF Core model, with the entities' data annotations as validators;
+   *  - the validation metadata (`ValidationController`), with the rules the annotations cannot
+   *    express: an address has a state, a rate is not negative, a resource keeps an address and a
+   *    phone number.
+   *
+   * The validation metadata gets Breeze's display names (`displayNameMetadata`) and is then
+   * installed into Breeze (`installBreezeValidators`).  Breeze then runs those rules next to its
+   * own: a property's rules whenever it changes, and all of them on every save, so a save with a
+   * broken rule never leaves the client.  The server checks the same metadata again when it saves.
+   */
   private loadMetadata(manager: EntityManager): Promise<void> {
-    this.metadataPromise ??= manager
-      .fetchMetadata()
-      .then(() => registerModel(this.metadataStore))
+    this.metadataPromise ??= Promise.all([
+      manager.fetchMetadata(),
+      getJson<ModelValidationMetadataMap>(`${environment.validationApiRoot}/Metadata`),
+    ])
+      .then(([, validationMetadata]) => {
+        registerModel(this.metadataStore);
+
+        this.validation.validationMetadata.addMetadata([
+          validationMetadata,
+          displayNameMetadata(this.metadataStore),
+        ]);
+        installBreezeValidators(this.metadataStore, this.validation);
+      })
       .catch((error) => {
         this.metadataPromise = undefined;
         throw error;

@@ -78,6 +78,26 @@
   border: 1px solid var(--temphire-border);
 }
 
+.summary__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.summary__dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+}
+
+.summary__date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--temphire-muted);
+  font-weight: 600;
+}
+
 .summary__text textarea {
   width: 100%;
   resize: vertical;

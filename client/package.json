@@ -18,6 +18,7 @@
     "model:generate": "breeze-gen-entities --metadata metadata.json --out src/app/core/model --base BaseEntity --base-module ./base-entity"
   },
   "dependencies": {
+    "@ideablade/validation": "file:../../ideablade-validation/js",
     "@mantine/core": "^9.8.1",
     "@mantine/dates": "^9.8.1",
     "@mantine/form": "^9.8.1",

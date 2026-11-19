@@ -1,5 +1,8 @@
+import { ValidationService, createValidationService } from '@ideablade/validation';
+import { breezeModelType, breezeRuleSource, breezeValidator } from '@ideablade/validation/breeze';
 import { ReactNode, createContext, useContext, useSyncExternalStore } from 'react';
 
+import { clientValidationMetadata } from '../validation/client-validation-metadata';
 import { setTokenSource } from './api-fetch';
 import { AuthService, AuthState } from './auth.service';
 import { EntityManagerProvider } from './entity-manager-provider';
@@ -26,18 +29,44 @@ export interface AppServices {
   readonly emProvider: EntityManagerProvider;
   readonly unitOfWorkManager: UnitOfWorkManager;
   readonly auth: AuthService;
+  /** The app's validation service; `main.tsx` provides it to the validation hooks. */
+  readonly validation: ValidationService;
 }
 
 export function createAppServices(): AppServices {
-  const emProvider = new EntityManagerProvider();
-  const unitOfWorkManager = new UnitOfWorkManager(emProvider);
+  /**
+   * Validation (`@ideablade/validation`) - the counterpart of `provideValidation` in the Angular
+   * client's `app.config.ts`.
+   *
+   * The rules come from the server's validation metadata, which `EntityManagerProvider` loads at
+   * sign-in next to the Breeze metadata and installs into Breeze; the view models' metadata is the
+   * client's own (`clientValidationMetadata`).
+   *
+   *  - `breezeValidator` brings Breeze's own rules into the framework (`clientValidationMetadata`),
+   *    so form fields show them like every other rule;
+   *  - `breezeModelType` lets `ValidationForm` find an entity's model type itself;
+   *  - `breezeRuleSource` lets a view model property inherit an entity property's Breeze rules with
+   *    `from` (the name editor).
+   *
+   * This is the app's validation service.  The resource management route has its own, whose entity
+   * store is the unit of work being shown (see `ResourceMgt`).
+   */
+  const validation = createValidationService({
+    metadata: clientValidationMetadata,
+    validators: [breezeValidator],
+    modelTypeResolvers: [breezeModelType],
+    // A function: the metadata store's types arrive at sign-in.
+    ruleSources: [breezeRuleSource(() => emProvider.metadataStore)],
+  });
+  const emProvider = new EntityManagerProvider(validation);
+  const unitOfWorkManager = new UnitOfWorkManager(emProvider, validation);
   const auth = new AuthService(emProvider, unitOfWorkManager);
 
   // Every request goes through `apiFetch`, which gets its token from the session - the counterpart
   // of `provideHttpClient(withInterceptors([authInterceptor]))`.
   setTokenSource(auth);
 
-  return { emProvider, unitOfWorkManager, auth };
+  return { emProvider, unitOfWorkManager, auth, validation };
 }
 
 const AppServicesContext = createContext<AppServices | null>(null);

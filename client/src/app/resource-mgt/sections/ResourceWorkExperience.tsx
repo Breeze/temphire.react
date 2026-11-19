@@ -1,3 +1,4 @@
+import { ValidationForm } from '@ideablade/validation/react';
 import { Button, Divider } from '@mantine/core';
 import { IconCalendar, IconPlus } from '@tabler/icons-react';
 import { Fragment } from 'react';
@@ -55,57 +56,65 @@ export function ResourceWorkExperience({ staffingResource, readOnly, unitOfWork 
         // after it) still needs one key for the pair.
         items.map((item, index) => (
           <Fragment key={item.id}>
-            <div className="work__item">
-              <div className="work__row">
-                <label className="work__field work__field--date">
-                  <span className="work__label">From:</span>
-                  <EntityDateInput
-                    entity={item}
-                    property="from"
-                    disabled={readOnly}
-                    valueFormat="MM/DD/YYYY"
-                    rightSection={<IconCalendar size={16} />}
-                  />
-                </label>
-                <label className="work__field work__field--date">
-                  <span className="work__label">To:</span>
-                  <EntityDateInput
-                    entity={item}
-                    property="to"
-                    disabled={readOnly}
-                    valueFormat="MM/DD/YYYY"
-                    rightSection={<IconCalendar size={16} />}
-                  />
-                </label>
-                <label className="work__field work__field--grow">
-                  <span className="work__label">Title:</span>
-                  <EntityTextInput entity={item} property="positionTitle" readOnly={readOnly} />
-                </label>
-                <label className="work__field work__field--location">
-                  <span className="work__label">Location:</span>
-                  <EntityTextInput entity={item} property="location" readOnly={readOnly} />
-                </label>
-                <div className="work__field work__field--action">
-                  <Button
-                    size="xs"
-                    color="red"
-                    variant="subtle"
-                    disabled={readOnly}
-                    onClick={() => staffingResource.deleteWorkExperience(item)}
-                  >
-                    Delete
-                  </Button>
+            {/* Validates the item as a whole, so "From before To" shows on both dates. */}
+            <ValidationForm model={item}>
+              <div className="work__item">
+                <div className="work__row">
+                  <label className="work__field work__field--date">
+                    <span className="work__label">From:</span>
+                    <EntityDateInput
+                      entity={item}
+                      property="from"
+                      disabled={readOnly}
+                      valueFormat="MM/DD/YYYY"
+                      rightSection={<IconCalendar size={16} />}
+                    />
+                  </label>
+                  <label className="work__field work__field--date">
+                    <span className="work__label">To:</span>
+                    <EntityDateInput
+                      entity={item}
+                      property="to"
+                      disabled={readOnly}
+                      valueFormat="MM/DD/YYYY"
+                      rightSection={<IconCalendar size={16} />}
+                    />
+                  </label>
+                  <label className="work__field work__field--grow">
+                    <span className="work__label">Title:</span>
+                    <EntityTextInput entity={item} property="positionTitle" readOnly={readOnly} />
+                  </label>
+                  <label className="work__field work__field--location">
+                    <span className="work__label">Location:</span>
+                    <EntityTextInput entity={item} property="location" readOnly={readOnly} />
+                  </label>
+                  <div className="work__field work__field--action">
+                    <Button
+                      size="xs"
+                      color="red"
+                      variant="subtle"
+                      disabled={readOnly}
+                      onClick={() => staffingResource.deleteWorkExperience(item)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
+                <label className="work__field">
+                  <span className="work__label">Company:</span>
+                  <EntityTextInput entity={item} property="company" readOnly={readOnly} />
+                </label>
+                <label className="work__field">
+                  <span className="work__label">Description:</span>
+                  <EntityTextarea
+                    entity={item}
+                    property="description"
+                    readOnly={readOnly}
+                    rows={4}
+                  />
+                </label>
               </div>
-              <label className="work__field">
-                <span className="work__label">Company:</span>
-                <EntityTextInput entity={item} property="company" readOnly={readOnly} />
-              </label>
-              <label className="work__field">
-                <span className="work__label">Description:</span>
-                <EntityTextarea entity={item} property="description" readOnly={readOnly} rows={4} />
-              </label>
-            </div>
+            </ValidationForm>
             {index < items.length - 1 && <Divider my="sm" />}
           </Fragment>
         ))

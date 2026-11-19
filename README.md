@@ -43,7 +43,23 @@ side by side.
 
 ## Running it
 
-Two terminals; the server first, because the client loads its Breeze metadata from it.
+TempHire's validation uses [ideablade-validation](https://github.com/Breeze/ideablade-validation),
+which isn't published as a package yet.  Both projects take it from a checkout next to this one,
+`../ideablade-validation`: the server as a project reference, the client as a `file:` dependency
+(`client/.npmrc` installs it as a copy).  Clone it and build its TypeScript package once:
+
+```
+git clone https://github.com/Breeze/ideablade-validation.git ../ideablade-validation
+cd ../ideablade-validation/js
+npm ci
+npm run build
+```
+
+After changing the library, run `npm run build` there again, then reinstall it in `client`
+(`npm install @ideablade/validation@file:../../ideablade-validation/js`).
+
+Then two terminals; the server first, because the client loads its Breeze and validation metadata
+from it.
 
 **1. Server** (`http://localhost:5100`)
 
@@ -114,7 +130,7 @@ explains each point.
   changes. The unit of work bridges the two: it notifies its subscribers whenever an entity in it
   changes, and a component that calls `useUnitOfWork(unitOfWork)` renders again. Inputs bound to an
   entity property (`core/validation/EntityFields.tsx`) write straight to the entity and show its
-  Breeze validation errors.
+  validation errors (see [Validation](#validation)).
 - **One fetch for everything.** `apiFetch` attaches the access token, renews it before it expires,
   and signs in again on a 401. Breeze is configured to use it too.
 - **Routing.** React Router loaders check the session and the roles before a page renders - what
@@ -157,6 +173,40 @@ The `Agent` section of `server/TempHire.Server/appsettings.json` picks the model
 The [Angular version's README](https://github.com/Breeze/temphire.angular#quinn-the-assistant)
 describes how Quinn works, and compares the two models, in detail; none of it changed.
 
+## Validation
+
+The rules are the server's, in two places: the entities' data annotations (`[Required]`,
+`[StringLength]`), which reach the client in the Breeze metadata, and the validation metadata
+(`TempHire.Server/Validation/validation.metadata.json`) for the rules annotations cannot express -
+U.S. addresses with a state and a ZIP code, phone number formats, rates, valid dates, and a resource
+with at least one address and one phone number who is at least 18 years old when hired.  Both are
+read by [IdeaBlade.Validation / `@ideablade/validation`](https://github.com/Breeze/ideablade-validation),
+which surfaces every rule as the same kind of `ValidationError` on both sides; the Angular version's
+[Validation comes from the server](https://github.com/Breeze/temphire.angular#validation-comes-from-the-server)
+describes the server half.  On the client:
+
+- **At sign-in** `EntityManagerProvider` loads the validation metadata (`api/validation/Metadata`)
+  next to the Breeze metadata, gives it Breeze's display names (`displayNameMetadata`) and installs
+  it into Breeze (`installBreezeValidators`), so Breeze runs every rule before a save.
+- **The app's validation service** is created in `createAppServices` and provided by
+  `<ValidationProvider>` in `main.tsx`.  Resource Management has its own
+  (`useValidationScope(unitOfWork.entityStore)`), whose entity store is the unit of work being
+  shown.
+- **Entity editors** wrap each card or row in `<ValidationForm model={entity}>`, which validates the
+  whole entity; each `Entity*` input shows the errors about its property (`useFieldValidation`).
+  Breeze's own rules reach the inputs through the `breeze` validator, the same way as the server's.
+  A rule about two fields shows on both: "at least 18 years old when hired" names both dates, and
+  changing either re-checks the other.
+- **Rules about a whole entity**, such as "at least one address", have no field.  The unit of work
+  keeps them current (`UnitOfWork.validationErrors()`), the address and phone lists show them, and
+  Save stays disabled while any rule is broken.  A new resource starts without an address or a phone
+  number, and the last one of each can be deleted, so the rule is the user's to satisfy.
+- **The name editor** validates a `ResourceName` view model with the service
+  (`core/validation/client-validation-metadata.ts`); its properties inherit `StaffingResource`'s
+  Breeze rules with `from`, so nothing is restated.
+- **Display names live in one place**, `core/model-display-names.ts`, and the validation messages
+  use them too.
+
 ## The server
 
 The server is the Angular version's, unchanged apart from the client's origin, its ports and its
@@ -197,7 +247,7 @@ temphire.react/
             │   ├── model/          # generated entity classes
             │   ├── services/       # auth, apiFetch, Breeze managers, units of work, dialogs, toolbar
             │   ├── hooks/          # useUnitOfWork, useBusy
-            │   ├── validation/     # useBreezeField and the Entity* inputs
+            │   ├── validation/     # the Entity* inputs, the client validation metadata
             │   └── theme/          # the Mantine theme
             ├── auth-callback/      # where sign-in returns to
             ├── home/

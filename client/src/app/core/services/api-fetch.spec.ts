@@ -1,3 +1,4 @@
+import { createValidationService } from '@ideablade/validation';
 import { vi } from 'vitest';
 
 import { environment } from '../../../environments/environment';
@@ -30,8 +31,9 @@ describe('apiFetch', () => {
       );
     }
 
-    const emProvider = new EntityManagerProvider();
-    const auth = new AuthService(emProvider, new UnitOfWorkManager(emProvider));
+    const validation = createValidationService();
+    const emProvider = new EntityManagerProvider(validation);
+    const auth = new AuthService(emProvider, new UnitOfWorkManager(emProvider, validation));
     const signIn = vi.spyOn(auth, 'signIn').mockResolvedValue();
     setTokenSource(auth);
     return { signIn };

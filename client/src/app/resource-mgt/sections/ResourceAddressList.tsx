@@ -1,4 +1,5 @@
-import { Button, Radio } from '@mantine/core';
+import { ValidationForm } from '@ideablade/validation/react';
+import { Alert, Button, Radio } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
 import { Address, AddressType } from '../../core/model';
@@ -31,9 +32,20 @@ export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: 
     .allInCache('name')
     .map((state) => ({ value: state.id, label: state.name }));
 
-  /** Port of `StaffingResourceAddressItemViewModel.CanDelete`. */
-  const canDelete = (address: Address) =>
-    !readOnly && !address.primary && staffingResource.addresses.length > 1;
+  /**
+   * The resource's "at least one address" rule, when it is broken.  It is a rule of the validation
+   * metadata about the whole resource, so no field shows it; the unit of work keeps it current.
+   */
+  const ruleErrors = unitOfWork
+    .validationErrors()
+    .filter((error) => error.model === staffingResource && error.id === 'ADDRESS_REQUIRED');
+
+  /**
+   * Port of `StaffingResourceAddressItemViewModel.CanDelete`, without its "not the primary one, not
+   * the last one" condition.  The last address may go too: the user then sees the resource's rule
+   * broken, and cannot save until they add one.
+   */
+  const canDelete = (_address: Address) => !readOnly;
 
   /** Port of `StaffingResourceAddressItemViewModel.CanSetPrimary`. */
   const canSetPrimary = (address: Address) => !readOnly && !address.primary;
@@ -76,57 +88,66 @@ export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: 
         Add
       </Button>
 
+      {ruleErrors.map((error) => (
+        <Alert key={error.key} color="red" variant="light" p="xs">
+          {error.errorMessage}
+        </Alert>
+      ))}
+
       <div className="addresses__cards">
         {addresses.map((address) => (
           <div key={address.id} className="address temphire-elevated">
             <div className="address__header">{address.addressType?.displayName}</div>
 
             <div className="address__body">
-              <div className="address__fields">
-                <label htmlFor={`address1-${address.id}`}>Address 1:</label>
-                <EntityTextInput
-                  id={`address1-${address.id}`}
-                  entity={address}
-                  property="address1"
-                  readOnly={readOnly}
-                />
+              {/* Validates the address as a whole; each input shows the errors about its property. */}
+              <ValidationForm model={address}>
+                <div className="address__fields">
+                  <label htmlFor={`address1-${address.id}`}>Address 1:</label>
+                  <EntityTextInput
+                    id={`address1-${address.id}`}
+                    entity={address}
+                    property="address1"
+                    readOnly={readOnly}
+                  />
 
-                <label htmlFor={`address2-${address.id}`}>Address 2:</label>
-                <EntityTextInput
-                  id={`address2-${address.id}`}
-                  entity={address}
-                  property="address2"
-                  readOnly={readOnly}
-                />
+                  <label htmlFor={`address2-${address.id}`}>Address 2:</label>
+                  <EntityTextInput
+                    id={`address2-${address.id}`}
+                    entity={address}
+                    property="address2"
+                    readOnly={readOnly}
+                  />
 
-                <label htmlFor={`city-${address.id}`}>City:</label>
-                <EntityTextInput
-                  id={`city-${address.id}`}
-                  entity={address}
-                  property="city"
-                  readOnly={readOnly}
-                />
+                  <label htmlFor={`city-${address.id}`}>City:</label>
+                  <EntityTextInput
+                    id={`city-${address.id}`}
+                    entity={address}
+                    property="city"
+                    readOnly={readOnly}
+                  />
 
-                <label htmlFor={`state-${address.id}`}>State:</label>
-                <EntitySelect
-                  id={`state-${address.id}`}
-                  entity={address}
-                  property="stateId"
-                  data={states}
-                  disabled={readOnly}
-                  searchable
-                  className="address__state"
-                />
+                  <label htmlFor={`state-${address.id}`}>State:</label>
+                  <EntitySelect
+                    id={`state-${address.id}`}
+                    entity={address}
+                    property="stateId"
+                    data={states}
+                    disabled={readOnly}
+                    searchable
+                    className="address__state"
+                  />
 
-                <label htmlFor={`zipcode-${address.id}`}>Zipcode:</label>
-                <EntityTextInput
-                  id={`zipcode-${address.id}`}
-                  className="address__zipcode"
-                  entity={address}
-                  property="zipcode"
-                  readOnly={readOnly}
-                />
-              </div>
+                  <label htmlFor={`zipcode-${address.id}`}>Zipcode:</label>
+                  <EntityTextInput
+                    id={`zipcode-${address.id}`}
+                    className="address__zipcode"
+                    entity={address}
+                    property="zipcode"
+                    readOnly={readOnly}
+                  />
+                </div>
+              </ValidationForm>
 
               <div className="address__actions">
                 <Radio

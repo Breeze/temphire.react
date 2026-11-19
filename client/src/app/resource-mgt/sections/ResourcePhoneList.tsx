@@ -1,4 +1,5 @@
-import { Button, Radio } from '@mantine/core';
+import { ValidationForm } from '@ideablade/validation/react';
+import { Alert, Button, Radio } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
 import { PhoneNumber, PhoneNumberType } from '../../core/model';
@@ -21,9 +22,16 @@ export function ResourcePhoneList({ staffingResource, readOnly, unitOfWork }: Se
 
   const phoneNumbers = [...staffingResource.phoneNumbers];
 
-  /** Port of `StaffingResourcePhoneItemViewModel.CanDelete`. */
-  const canDelete = (phoneNumber: PhoneNumber) =>
-    !readOnly && !phoneNumber.primary && staffingResource.phoneNumbers.length > 1;
+  /** The resource's "at least one phone number" rule, when it is broken; see the address list. */
+  const ruleErrors = unitOfWork
+    .validationErrors()
+    .filter((error) => error.model === staffingResource && error.id === 'PHONE_NUMBER_REQUIRED');
+
+  /**
+   * Port of `StaffingResourcePhoneItemViewModel.CanDelete`, without its "not the primary one, not
+   * the last one" condition, as in the address list.
+   */
+  const canDelete = (_phoneNumber: PhoneNumber) => !readOnly;
 
   /** Port of `StaffingResourcePhoneItemViewModel.CanSetPrimary`. */
   const canSetPrimary = (phoneNumber: PhoneNumber) => !readOnly && !phoneNumber.primary;
@@ -69,24 +77,32 @@ export function ResourcePhoneList({ staffingResource, readOnly, unitOfWork }: Se
         Add
       </Button>
 
+      {ruleErrors.map((error) => (
+        <Alert key={error.key} color="red" variant="light" p="xs">
+          {error.errorMessage}
+        </Alert>
+      ))}
+
       <div className="phones__cards">
         {phoneNumbers.map((phoneNumber) => (
           <div key={phoneNumber.id} className="phone temphire-elevated">
             <span className="phone__type">{phoneNumber.phoneNumberType?.name}</span>
-            <EntityTextInput
-              className="phone__area-code"
-              aria-label="Area code"
-              entity={phoneNumber}
-              property="areaCode"
-              readOnly={readOnly}
-            />
-            <EntityTextInput
-              className="phone__number"
-              aria-label="Number"
-              entity={phoneNumber}
-              property="number"
-              readOnly={readOnly}
-            />
+            <ValidationForm model={phoneNumber}>
+              <EntityTextInput
+                className="phone__area-code"
+                aria-label="Area code"
+                entity={phoneNumber}
+                property="areaCode"
+                readOnly={readOnly}
+              />
+              <EntityTextInput
+                className="phone__number"
+                aria-label="Number"
+                entity={phoneNumber}
+                property="number"
+                readOnly={readOnly}
+              />
+            </ValidationForm>
             <Radio
               name="primary-phone-number"
               label="Primary"

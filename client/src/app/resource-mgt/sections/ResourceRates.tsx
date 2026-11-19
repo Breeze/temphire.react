@@ -1,3 +1,4 @@
+import { ValidationForm } from '@ideablade/validation/react';
 import { Button } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
@@ -76,37 +77,44 @@ export function ResourceRates({ staffingResource, readOnly, unitOfWork }: Sectio
       </div>
 
       {sortedRates.length === 0 ? (
-        <p className="rates__empty">No rates found. Please add a rate by clicking the 'Add' button.</p>
+        <p className="rates__empty">
+          No rates found. Please add a rate by clicking the 'Add' button.
+        </p>
       ) : (
         <div className="rates__list">
           {sortedRates.map((rate) => (
-            <div key={rate.id} className="rates__row">
-              <span className="rates__type">{rate.rateType?.displayName}</span>
-              {readOnly ? (
-                <span className="rates__amount rates__amount--text">{usd.format(rate.amount ?? 0)}</span>
-              ) : (
-                <EntityNumberInput
-                  className="rates__amount"
-                  aria-label={`${rate.rateType?.displayName ?? ''} rate`}
-                  entity={rate}
-                  property="amount"
-                  prefix="$"
-                  thousandSeparator=","
-                  decimalScale={2}
-                  fixedDecimalScale
-                  hideControls
-                />
-              )}
-              <Button
-                size="xs"
-                color="red"
-                variant="subtle"
-                disabled={readOnly}
-                onClick={() => staffingResource.deleteRate(rate)}
-              >
-                Delete
-              </Button>
-            </div>
+            // Validates the rate as a whole; the amount shows the errors about it.
+            <ValidationForm key={rate.id} model={rate}>
+              <div className="rates__row">
+                <span className="rates__type">{rate.rateType?.displayName}</span>
+                {readOnly ? (
+                  <span className="rates__amount rates__amount--text">
+                    {usd.format(rate.amount ?? 0)}
+                  </span>
+                ) : (
+                  <EntityNumberInput
+                    className="rates__amount"
+                    aria-label={`${rate.rateType?.displayName ?? ''} rate`}
+                    entity={rate}
+                    property="amount"
+                    prefix="$"
+                    thousandSeparator=","
+                    decimalScale={2}
+                    fixedDecimalScale
+                    hideControls
+                  />
+                )}
+                <Button
+                  size="xs"
+                  color="red"
+                  variant="subtle"
+                  disabled={readOnly}
+                  onClick={() => staffingResource.deleteRate(rate)}
+                >
+                  Delete
+                </Button>
+              </div>
+            </ValidationForm>
           ))}
         </div>
       )}

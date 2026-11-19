@@ -256,7 +256,7 @@ Custom hooks are the main way to share logic. TempHire's:
 | `useAuth()` | the session, kept current | reading `AuthService` signals |
 | `useUnitOfWork(uow)` | re-render when an entity changes | reading `unitOfWork.changes()` in a `computed` |
 | `useBusy()` | a busy counter for one component | a component-provided `BusyService` |
-| `useBreezeField(entity, prop)` | a property's Breeze errors | the `breezeField` directive |
+| `useFieldValidation(prop)` | a property's errors in the nearest `ValidationForm` | `#field="ngModel"` in an `ngForm [validationModel]` |
 | `useToolbarGroup(group)` | show commands in the shell's toolbar | `registerToolbarGroup` |
 | `useLeaveGuard(ask, canLeave)` | ask before leaving with unsaved edits | `canDeactivate` |
 
@@ -487,16 +487,20 @@ const [text, setText] = useState('');
 
 That is all two-way binding is in React - explicit, one handler per input. For real forms, a
 library keeps the values, the validation and the touched state; TempHire's name editor uses
-Mantine's `useForm`, with the validators Breeze built from the server's model:
+Mantine's `useForm`, with the `ResourceName` validation metadata, whose properties inherit the
+rules Breeze built from the server's model:
 
 ```tsx
-// ResourceNameEditor.tsx - Angular: a Signal Form with validateWithBreeze
+// ResourceNameEditor.tsx - Angular: a Signal Form with validateWithMetadata
+const validation = useValidationService();
 const form = useForm<ResourceName>({
   initialValues: { firstName: '', middleName: '', lastName: '', ...name },
-  validate: {
-    firstName: breezeValidate(type.getDataProperty('firstName')),
-    lastName: breezeValidate(type.getDataProperty('lastName')),
-    ...
+  validate: (values) => {
+    const errors: FormErrors = {};
+    for (const error of validation.validateModelSync(values, 'ResourceName')) {
+      for (const property of error.propertyNames) errors[property] ??= error.errorMessage;
+    }
+    return errors;
   },
   validateInputOnBlur: true,
 });
@@ -505,15 +509,17 @@ const form = useForm<ResourceName>({
 ```
 
 Entity fields are bound to Breeze entities instead, through the `Entity*` components in
-`EntityFields.tsx`:
+`EntityFields.tsx`, inside a `ValidationForm` that validates the entity as a whole:
 
 ```tsx
-<EntityTextInput entity={address} property="city" readOnly={readOnly} />
+<ValidationForm model={address}>
+  <EntityTextInput entity={address} property="city" readOnly={readOnly} />
+</ValidationForm>
 ```
 
 `value` reads `address.city`; `onChange` writes it; Breeze validates and raises events; the section
 re-renders (section 14) and the field shows the new value and any error. Where Angular needed
-`[(ngModel)]` plus a directive on every input, React needs a small component.
+`[(ngModel)]`, a `name` and `#field="ngModel"` on every input, React needs a small component.
 
 ---
 
@@ -560,8 +566,9 @@ TempHire keeps Breeze's model and tells React about the changes:
    `hasChanges()` and `hasValidationErrors()`.
 3. **Inputs write straight to the entity** (`EntityFields.tsx`), and the change comes back round
    through the store. The entity stays the single source of truth, as it was with `ngModel`.
-4. **Fields subscribe to their own validation** with `useBreezeField`, so an error Breeze finds
-   during a save highlights the field even though nothing on screen changed it.
+4. **Forms re-validate on every change in the unit of work.** `ValidationForm` listens to the
+   validation service's entity store - the unit of work's entities (`useValidationScope` in
+   `ResourceMgt`) - so a change made in code, or in another section, re-checks the fields.
 
 ```tsx
 export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: SectionProps) {
