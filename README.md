@@ -168,7 +168,7 @@ describes how Quinn works, and compares the two models, in detail; none of it ch
 
 ## Validation
 
-> **Preview.**  Validation uses a preview of IdeaBlade Validation (`0.1.0-preview.2`), which
+> **Preview.**  Validation uses a preview of IdeaBlade Validation (`0.1.0-preview.3`), which
 > isn't published to NuGet or npm yet: the builds are in `packages/`, where `nuget.config` and
 > `client/package.json` find them (`packages/README.md` explains how to update them).  The
 > framework's API may still change before its first release, and so may its name - the
