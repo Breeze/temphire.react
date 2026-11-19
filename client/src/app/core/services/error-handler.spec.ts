@@ -1,8 +1,9 @@
 import { notifications } from '@mantine/notifications';
+import { ProblemTypes } from 'breeze-client';
 import { vi } from 'vitest';
 
 import { HttpError } from './api-fetch';
-import { describe as describeError, showError } from './error-handler';
+import { CONCURRENCY_CONFLICT, describe as describeError, showError } from './error-handler';
 
 /** Port of the Angular client's `core/services/error-handler.service.spec.ts`. */
 describe('showError', () => {
@@ -58,5 +59,27 @@ describe('describe', () => {
     });
 
     expect(describeError(error).detail).toBe("'City' is required");
+  });
+
+  // A save that conflicted with someone else's, as the Breeze client reports it: a save error whose
+  // `problemType` is the one the Breeze server sends for a concurrency conflict, carrying the
+  // server's technical message.
+  it('tells the user to refresh after a concurrency conflict, not what the server said', () => {
+    const conflict = Object.assign(
+      new Error('The save failed because 1 record was changed or deleted by another user after it was read.'),
+      { status: 409, problemType: ProblemTypes.concurrencyConflict, entityErrors: [] },
+    );
+
+    expect(describeError(conflict)).toEqual(CONCURRENCY_CONFLICT);
+    expect(CONCURRENCY_CONFLICT.detail).toContain('Click Refresh');
+  });
+
+  it('does not mistake another 409 for a concurrency conflict', () => {
+    const duplicate = Object.assign(new Error('Cannot insert duplicate key.'), {
+      status: 409,
+      problemType: 'https://example.test/problems/duplicate-key',
+    });
+
+    expect(describeError(duplicate)).not.toEqual(CONCURRENCY_CONFLICT);
   });
 });

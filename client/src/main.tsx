@@ -62,8 +62,10 @@ createRoot(document.getElementById('root')!).render(
           <ValidationProvider service={services.validation}>
             {/* Dialogs (dialog.service.tsx) render here, inside the services' context. */}
             <ModalsProvider>
-              {/* The toasts - `<p-toast />` in Angular. */}
-              <Notifications position="top-right" />
+              {/* The toasts - `<p-toast />` in Angular.  On top of everything: Mantine's default
+                  (400) put them behind the sticky toolbar (900), and they must show over the
+                  dialogs (1100) and dropdowns (1200) too - see `temphire-theme.ts`. */}
+              <Notifications position="top-right" zIndex={1300} />
               <RouterProvider router={router} />
             </ModalsProvider>
           </ValidationProvider>

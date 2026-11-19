@@ -1,4 +1,5 @@
 import { notifications } from '@mantine/notifications';
+import { isConcurrencyError } from 'breeze-client';
 
 import { HttpError } from './api-fetch';
 
@@ -56,6 +57,10 @@ export function isHarmless(error: unknown): boolean {
 
 export function describe(error: unknown): { summary: string; detail: string } {
   const unwrapped = (error as { reason?: unknown })?.reason ?? error;
+
+  if (isConcurrencyError(unwrapped)) {
+    return CONCURRENCY_CONFLICT;
+  }
 
   // A request made with `apiRequest` that failed: the body is the server's answer, as text.
   if (unwrapped instanceof HttpError) {
@@ -129,3 +134,19 @@ function describeParsed(body: BreezeEntityErrors | null): { summary: string; det
 function unique(messages: string[]): string {
   return [...new Set(messages)].join('\n');
 }
+
+/**
+ * What the user is told when a save conflicts with someone else's: another user changed or deleted
+ * a record the save changes or deletes after it was loaded (optimistic concurrency, see
+ * `AuditEntityBase.RowVersion` on the server).  Nothing was saved.  Refresh discards the unsaved
+ * changes and loads the latest data, on which the user can make their changes again.
+ *
+ * Recognized by the problem type the Breeze server sends for a conflict (`isConcurrencyError`), not
+ * by the status code or the message: 409 is also a duplicate key, and the message is EF Core's.
+ */
+export const CONCURRENCY_CONFLICT = {
+  summary: 'Someone else changed this data',
+  detail:
+    'Another user changed or deleted some of this data after you loaded it, so your changes were not ' +
+    'saved. Click Refresh to load the latest data, then make your changes again and save.',
+};
