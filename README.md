@@ -43,20 +43,10 @@ side by side.
 
 ## Running it
 
-TempHire's validation uses [ideablade-validation](https://github.com/Breeze/ideablade-validation),
-which isn't published as a package yet.  Both projects take it from a checkout next to this one,
-`../ideablade-validation`: the server as a project reference, the client as a `file:` dependency
-(`client/.npmrc` installs it as a copy).  Clone it and build its TypeScript package once:
-
-```
-git clone https://github.com/Breeze/ideablade-validation.git ../ideablade-validation
-cd ../ideablade-validation/js
-npm ci
-npm run build
-```
-
-After changing the library, run `npm run build` there again, then reinstall it in `client`
-(`npm install @ideablade/validation@file:../../ideablade-validation/js`).
+TempHire's validation uses a preview of
+[IdeaBlade Validation](https://github.com/Breeze/ideablade-validation), which isn't published yet.
+Its packages are in `packages/`, and `dotnet` and `npm install` take them from there (see
+[Validation](#validation)), so there is nothing extra to install.
 
 Then two terminals; the server first, because the client loads its Breeze and validation metadata
 from it.
@@ -174,6 +164,12 @@ The [Angular version's README](https://github.com/Breeze/temphire.angular#quinn-
 describes how Quinn works, and compares the two models, in detail; none of it changed.
 
 ## Validation
+
+> **Preview.**  Validation uses a preview of IdeaBlade Validation (`0.1.0-preview.1`), which
+> isn't published to NuGet or npm yet: the builds are in `packages/`, where `nuget.config` and
+> `client/package.json` find them (`packages/README.md` explains how to update them).  The
+> framework's API may still change before its first release, and so may its name - the
+> `IdeaBlade.Validation` / `@ideablade/validation` packages and their namespaces and imports.
 
 The rules are the server's, in two places: the entities' data annotations (`[Required]`,
 `[StringLength]`), which reach the client in the Breeze metadata, and the validation metadata
