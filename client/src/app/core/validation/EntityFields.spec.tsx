@@ -13,7 +13,7 @@ import rules from '../../../../../server/TempHire.Server/Validation/validation.m
 import { newTestManager, renderWithMantine } from '../../../test-utils';
 import { displayNameMetadata, setDisplayNames } from '../model-display-names';
 import { clientValidationMetadata } from './client-validation-metadata';
-import { EntitySelect, EntityTextInput } from './EntityFields';
+import { EntityNumberInput, EntitySelect, EntityTextInput } from './EntityFields';
 
 /**
  * Entity fields as the app builds them: `ValidationForm` over a Breeze entity, with the app's
@@ -22,7 +22,7 @@ import { EntitySelect, EntityTextInput } from './EntityFields';
  * Counterpart of the Angular client's `core/validation/entity-fields.spec.ts`.
  */
 describe('entity fields', () => {
-  function render() {
+  function setUp() {
     const manager = newTestManager();
     const metadataStore = manager.metadataStore;
     setDisplayNames(metadataStore);
@@ -38,7 +38,11 @@ describe('entity fields', () => {
       entityStore: breezeEntityStore(manager),
     });
     installBreezeValidators(metadataStore, service);
+    return { manager, service };
+  }
 
+  function render() {
+    const { manager, service } = setUp();
     const address = manager.createEntity('Address', {
       id: crypto.randomUUID(),
       city: '',
@@ -91,5 +95,40 @@ describe('entity fields', () => {
     act(() => address.setProperty('city', ''));
 
     expect(city).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('writes an amount typed as $65.00 to the entity as a number', () => {
+    const { manager, service } = setUp();
+    const rate = manager.createEntity('Rate', {
+      id: crypto.randomUUID(),
+      amount: 50,
+    }) as Entity & { amount: number | null };
+
+    // As the rates section shows a rate.
+    renderWithMantine(
+      <ValidationProvider service={service}>
+        <ValidationForm model={rate}>
+          <EntityNumberInput
+            entity={rate}
+            property="amount"
+            aria-label="Rate"
+            prefix="$"
+            thousandSeparator=","
+            decimalScale={2}
+            fixedDecimalScale
+          />
+        </ValidationForm>
+      </ValidationProvider>,
+    );
+    const input = screen.getByLabelText('Rate') as HTMLInputElement;
+
+    // Mantine reports '65.00' as a string, not a number: it would reformat a number.
+    fireEvent.change(input, { target: { value: '$65.00' } });
+    expect(rate.amount).toBe(65);
+    expect(input).not.toHaveAttribute('aria-invalid');
+
+    fireEvent.change(input, { target: { value: '' } });
+    expect(rate.amount).toBeNull();
+    expect(input).toHaveAttribute('aria-invalid', 'true');
   });
 });

@@ -134,9 +134,23 @@ export function EntityNumberInput<T extends Entity>({
       {...rest}
       {...errorProps(message)}
       value={(read(entity, property) as number | null) ?? ''}
-      onChange={(value) => write(entity, property, typeof value === 'number' ? value : null)}
+      onChange={(value) => write(entity, property, toNumber(value))}
     />
   );
+}
+
+/**
+ * The number in what `NumberInput` reports.  It reports a number only when the text is one it
+ * would not reformat: $65.00 - how a rate reads with `fixedDecimalScale` - comes as the
+ * string `'65.00'`, as do `'65.'` and `'0.50'` while typing.  Those are numbers all the same; only
+ * an empty box (or a lone `-`) has none.
+ */
+function toNumber(value: number | string): number | null {
+  if (typeof value === 'number') {
+    return value;
+  }
+  const number = value.trim() === '' ? NaN : Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 /**

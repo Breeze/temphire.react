@@ -1,4 +1,12 @@
-import { MantineColorsTuple, createTheme } from '@mantine/core';
+import { Combobox, MantineColorsTuple, Popover, createTheme } from '@mantine/core';
+
+/**
+ * The layer of dropdowns: select lists, the date pickers' calendars.  Above the dialogs (1100, see
+ * `dialog.service.tsx`), which are above the sticky toolbar (900) and Quinn's pane (1000).  Mantine's
+ * default (300) put the type list of the Add Address / Phone Number / Rate dialogs behind the
+ * dialog, where it could not be clicked.
+ */
+const DROPDOWN_Z_INDEX = 1200;
 
 /**
  * TempHire's blue, the ten shades Mantine expects for a colour, lightest first.  The same scale as
@@ -33,4 +41,9 @@ export const temphireTheme = createTheme({
   fontFamily:
     "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   fontSizes: { xs: '12px', sm: '13px', md: '14px', lg: '16px', xl: '18px' },
+  // Selects open a Combobox; the date inputs a Popover.
+  components: {
+    Combobox: Combobox.extend({ defaultProps: { zIndex: DROPDOWN_Z_INDEX } }),
+    Popover: Popover.extend({ defaultProps: { zIndex: DROPDOWN_Z_INDEX } }),
+  },
 });
