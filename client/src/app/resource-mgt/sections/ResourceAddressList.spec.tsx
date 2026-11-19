@@ -40,7 +40,6 @@ describe('ResourceAddressList', () => {
     class TestUnitOfWork extends ChangeNotifier {
       private count = 0;
       readonly version = () => this.count;
-      readonly validationErrors = () => [];
       readonly addressTypes = { allInCache: () => [addressType] };
       readonly states = { allInCache: () => [] };
       constructor() {

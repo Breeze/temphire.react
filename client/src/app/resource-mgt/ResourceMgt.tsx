@@ -1,4 +1,4 @@
-import { ValidationProvider, useValidationScope } from '@ideablade/validation/react';
+import { ValidationProvider, useObservable, useValidationScope } from '@ideablade/validation/react';
 import { Loader } from '@mantine/core';
 import {
   IconDeviceFloppy,
@@ -89,6 +89,18 @@ export function ResourceMgt() {
    */
   const validation = useValidationScope(unitOfWork?.entityStore);
 
+  /**
+   * The continuous validation of that unit of work: every live entity in it, against every rule -
+   * the validation metadata's, sync and async, and Breeze's own (the `breeze` validator) - again
+   * whenever an entity in it changes.  The address and phone lists show the resource's rules from
+   * the same validation (`useEntityStoreValidation()`, under the provider below).
+   *
+   * Validating the whole unit of work is what keeps a rule about related entities current: "a
+   * resource keeps an address" is re-checked when an address is deleted, which Breeze, validating
+   * entity by entity, would only do when the resource itself was saved.
+   */
+  const validationResult = useObservable(() => validation.validateEntityStore(), undefined, [validation]);
+
   const staffingResourceId = staffingResource?.id ?? null;
   const isReadOnly = editMode === 'view';
   const hasResource = !!staffingResource;
@@ -105,8 +117,11 @@ export function ResourceMgt() {
     !!staffingResource &&
     !!unitOfWork &&
     unitOfWork.hasChanges() &&
-    // The fields with errors are highlighted; Save waits until they are fixed.
-    !unitOfWork.hasValidationErrors() &&
+    // The fields with errors are highlighted; Save waits until they are fixed, and until the async
+    // rules, if any, have answered.
+    !!validationResult &&
+    !validationResult.pending &&
+    validationResult.validationErrors.length === 0 &&
     !staffingResource.entityAspect.entityState.isDeleted();
   const canRefresh = !!staffingResource && !staffingResource.entityAspect.entityState.isAdded();
 

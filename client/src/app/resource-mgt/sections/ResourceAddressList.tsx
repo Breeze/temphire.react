@@ -1,4 +1,4 @@
-import { ValidationForm } from '@ideablade/validation/react';
+import { ValidationForm, useEntityStoreValidation } from '@ideablade/validation/react';
 import { Alert, Button, Radio } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
@@ -34,11 +34,14 @@ export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: 
 
   /**
    * The resource's "at least one address" rule, when it is broken.  It is a rule of the validation
-   * metadata about the whole resource, so no field shows it; the unit of work keeps it current.
+   * metadata about the whole resource, so no field shows it.  It comes from the continuous
+   * validation of the route's unit of work, which the Save button reacts to too (`ResourceMgt`):
+   * the route's validation service shares it.
    */
-  const ruleErrors = unitOfWork
-    .validationErrors()
-    .filter((error) => error.model === staffingResource && error.id === 'ADDRESS_REQUIRED');
+  const validation = useEntityStoreValidation();
+  const ruleErrors = (validation?.validationErrors ?? []).filter(
+    (error) => error.model === staffingResource && error.id === 'ADDRESS_REQUIRED',
+  );
 
   /**
    * Port of `StaffingResourceAddressItemViewModel.CanDelete`, without its "not the primary one, not

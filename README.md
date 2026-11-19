@@ -165,7 +165,7 @@ describes how Quinn works, and compares the two models, in detail; none of it ch
 
 ## Validation
 
-> **Preview.**  Validation uses a preview of IdeaBlade Validation (`0.1.0-preview.1`), which
+> **Preview.**  Validation uses a preview of IdeaBlade Validation (`0.1.0-preview.2`), which
 > isn't published to NuGet or npm yet: the builds are in `packages/`, where `nuget.config` and
 > `client/package.json` find them (`packages/README.md` explains how to update them).  The
 > framework's API may still change before its first release, and so may its name - the
@@ -187,15 +187,19 @@ describes the server half.  On the client:
 - **The app's validation service** is created in `createAppServices` and provided by
   `<ValidationProvider>` in `main.tsx`.  Resource Management has its own
   (`useValidationScope(unitOfWork.entityStore)`), whose entity store is the unit of work being
-  shown.
+  shown.  It also validates that unit of work continuously (`validateEntityStore()`): every live
+  entity against every rule, sync and async, the metadata's and Breeze's, again whenever an entity
+  changes.  Save reacts to that one result: it stays disabled while any rule is broken, and while
+  async rules have yet to answer.
 - **Entity editors** wrap each card or row in `<ValidationForm model={entity}>`, which validates the
   whole entity; each `Entity*` input shows the errors about its property (`useFieldValidation`).
   Breeze's own rules reach the inputs through the `breeze` validator, the same way as the server's.
   A rule about two fields shows on both: "at least 18 years old when hired" names both dates, and
   changing either re-checks the other.
-- **Rules about a whole entity**, such as "at least one address", have no field.  The unit of work
-  keeps them current (`UnitOfWork.validationErrors()`), the address and phone lists show them, and
-  Save stays disabled while any rule is broken.  A new resource starts without an address or a phone
+- **Rules about a whole entity**, such as "at least one address", have no field.  Validating the
+  whole unit of work keeps them current - deleting a resource's last address breaks the resource's
+  rule without changing the resource - and the address and phone lists show them from the same
+  result (`useEntityStoreValidation()`).  A new resource starts without an address or a phone
   number, and the last one of each can be deleted, so the rule is the user's to satisfy.
 - **The name editor** validates a `ResourceName` view model with the service
   (`core/validation/client-validation-metadata.ts`); its properties inherit `StaffingResource`'s

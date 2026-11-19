@@ -33,7 +33,7 @@ describe('apiFetch', () => {
 
     const validation = createValidationService();
     const emProvider = new EntityManagerProvider(validation);
-    const auth = new AuthService(emProvider, new UnitOfWorkManager(emProvider, validation));
+    const auth = new AuthService(emProvider, new UnitOfWorkManager(emProvider));
     const signIn = vi.spyOn(auth, 'signIn').mockResolvedValue();
     setTokenSource(auth);
     return { signIn };

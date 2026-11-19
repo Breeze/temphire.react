@@ -1,4 +1,4 @@
-import { ValidationForm } from '@ideablade/validation/react';
+import { ValidationForm, useEntityStoreValidation } from '@ideablade/validation/react';
 import { Alert, Button, Radio } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
@@ -23,9 +23,10 @@ export function ResourcePhoneList({ staffingResource, readOnly, unitOfWork }: Se
   const phoneNumbers = [...staffingResource.phoneNumbers];
 
   /** The resource's "at least one phone number" rule, when it is broken; see the address list. */
-  const ruleErrors = unitOfWork
-    .validationErrors()
-    .filter((error) => error.model === staffingResource && error.id === 'PHONE_NUMBER_REQUIRED');
+  const validation = useEntityStoreValidation();
+  const ruleErrors = (validation?.validationErrors ?? []).filter(
+    (error) => error.model === staffingResource && error.id === 'PHONE_NUMBER_REQUIRED',
+  );
 
   /**
    * Port of `StaffingResourcePhoneItemViewModel.CanDelete`, without its "not the primary one, not

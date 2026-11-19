@@ -59,7 +59,7 @@ export function createAppServices(): AppServices {
     ruleSources: [breezeRuleSource(() => emProvider.metadataStore)],
   });
   const emProvider = new EntityManagerProvider(validation);
-  const unitOfWorkManager = new UnitOfWorkManager(emProvider, validation);
+  const unitOfWorkManager = new UnitOfWorkManager(emProvider);
   const auth = new AuthService(emProvider, unitOfWorkManager);
 
   // Every request goes through `apiFetch`, which gets its token from the session - the counterpart
