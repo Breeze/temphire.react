@@ -1,5 +1,5 @@
-import { Button } from '@mantine/core';
-import { IconLogout } from '@tabler/icons-react';
+import { Button, Menu } from '@mantine/core';
+import { IconChartBar, IconChevronDown, IconLogout } from '@tabler/icons-react';
 import { Outlet, useNavigate } from 'react-router';
 
 import './App.css';
@@ -56,8 +56,9 @@ function Shell() {
     }
   }
 
-  // Port of `ShellViewModel.StartAsync`: one toolbar group for the workspaces, one for Logout.  Only
-  // the workspaces the user's roles allow are listed; the routes' loaders enforce the same rule.
+  // Port of `ShellViewModel.StartAsync`: the toolbar group for the workspaces.  Only the workspaces
+  // the user's roles allow are listed; the routes' loaders enforce the same rule.  (The original's
+  // Logout group is in the user menu now.)
   //
   // There is no `computed` here, nor any need for one: this function runs again whenever the
   // session or the screen's groups change, and simply works the toolbar out afresh each time.
@@ -73,15 +74,10 @@ function Shell() {
       })),
   };
 
-  const logoutGroup: ToolbarGroup = {
-    level: 100,
-    actions: [{ label: 'Logout', icon: <IconLogout size={16} />, execute: () => void logout() }],
-  };
-
   // The toolbar: the shell's own groups plus whatever the active screen contributed, and nothing
   // while signed out.
   const actions = session.isLoggedIn
-    ? toolbarActions([workspaceGroup, logoutGroup, ...screenGroups])
+    ? toolbarActions([workspaceGroup, ...screenGroups])
     : [];
 
   const initial = (session.username ?? '?').charAt(0).toUpperCase();
@@ -116,17 +112,38 @@ function Shell() {
           </nav>
 
           <span className="app-toolbar__spacer" />
-          <span className="app-toolbar__user">
-            <span className="app-toolbar__avatar" aria-hidden="true">
-              {initial}
-            </span>
-            <span className="app-toolbar__who">
-              <span className="app-toolbar__name">{session.username}</span>
-              {session.tenantName && (
-                <span className="app-toolbar__company">{session.tenantName}</span>
-              )}
-            </span>
-          </span>
+
+          {/*
+            The user menu: things about the user rather than the workspace they are in.  Port of
+            the Angular client's `p-menu` popup.  Mantine's `Menu` is a component tree - the
+            button it opens from is `Menu.Target`, the items `Menu.Item` - where Optimus UI took
+            the items as data (`[model]="userMenuItems"`); it handles the ARIA attributes itself.
+          */}
+          <Menu position="bottom-end" width={180} shadow="md">
+            <Menu.Target>
+              <button type="button" className="app-toolbar__user" title="Your account">
+                <span className="app-toolbar__avatar" aria-hidden="true">
+                  {initial}
+                </span>
+                <span className="app-toolbar__who">
+                  <span className="app-toolbar__name">{session.username}</span>
+                  {session.tenantName && (
+                    <span className="app-toolbar__company">{session.tenantName}</span>
+                  )}
+                </span>
+                <IconChevronDown size={14} className="app-toolbar__caret" aria-hidden="true" />
+              </button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item leftSection={<IconChartBar size={16} />} onClick={() => void navigate('/usage')}>
+                Usage
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item leftSection={<IconLogout size={16} />} onClick={() => void logout()}>
+                Logout
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </header>
       )}
 

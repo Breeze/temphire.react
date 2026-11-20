@@ -43,7 +43,7 @@ unchanged apart from a first line naming where it came from.
 | `main.ts`, `app/app.config.ts` | `main.tsx` | Providers become wrapping components: `MantineProvider`, `AppServicesProvider`, `ModalsProvider`, `Notifications`, `RouterProvider` |
 | `index.html` | `../index.html` | `<app-root>` becomes `<div id="root">` |
 | `environments/environment.ts` + `environment.development.ts` | `environments/environment.ts` | One file switching on `import.meta.env.DEV`; ports 5100 |
-| `app/app.ts` + `app/app.html` | `app/App.tsx` | `App` provides the toolbar and leave-guard contexts; `Shell` renders |
+| `app/app.ts` + `app/app.html` | `app/App.tsx` | `App` provides the toolbar and leave-guard contexts; `Shell` renders; the user menu is Mantine's `Menu` where Angular had Optimus UI's `p-menu` popup |
 | `app/app.css` | `app/App.css` | `:host` becomes `.app` |
 | `app/app.routes.ts` | `app/app.routes.tsx` | Guards become loaders; `loadComponent` becomes `lazy`; `canDeactivate` moves into the page (`useLeaveGuard`) |
 | `app/auth-callback/auth-callback.component.ts` | `app/auth-callback/AuthCallback.tsx` + `.css` | Redeems the code once even when StrictMode runs the effect twice |
@@ -115,6 +115,17 @@ unchanged apart from a first line naming where it came from.
 | `quinn/markdown.pipe.ts` + `link-people.pipe.ts` | `quinn/markdown.ts` (`renderAnswer`) | One function; now sanitizes with DOMPurify |
 | `quinn/link-people.ts` | same | Copied |
 
+The budget block in the pane: the Angular service derived it with `computed` signals and a clock
+signal; `QuinnConversation` works it out in `set` into its snapshot (`quotaBlock`, `quotaMessage`),
+and the pane's effect calls `tick()` every 30 seconds.
+
+### Usage
+
+| Angular | React | Notes |
+|---|---|---|
+| `usage/usage.component.ts` | `usage/Usage.tsx` + `Usage.css` | `httpResource` becomes state plus a fetch in an effect, with a reload counter; Mantine's `Progress` and `Badge` replace Optimus UI's |
+| `usage/usage.model.ts` | same | Copied |
+
 ### Tests
 
 | Angular | React |
@@ -128,7 +139,9 @@ unchanged apart from a first line naming where it came from.
 | `core/validation/server-rules.spec.ts` | same (copied) |
 | `core/model-display-names.spec.ts` | same (copied) |
 | `quinn/link-people.spec.ts` | same (copied) |
-| `quinn/quinn.service.spec.ts` | `quinn/quinn.service.spec.ts` |
+| `quinn/quinn.service.spec.ts` | `quinn/quinn.service.spec.ts` (plus the budget block) |
+| `usage/usage.component.spec.ts` | `usage/Usage.spec.tsx` |
+| `usage/usage.model.spec.ts` | same (copied) |
 | `resource-mgt/sections/resource-address-list.component.spec.ts` | `resource-mgt/sections/ResourceAddressList.spec.tsx` |
 | - | `test-setup.ts`, `test-utils.tsx` |
 

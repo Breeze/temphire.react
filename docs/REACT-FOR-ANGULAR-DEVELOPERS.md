@@ -540,6 +540,13 @@ Two things that came up in the conversion:
 - **Streaming.** Quinn's answer streams in as newline-delimited JSON. Angular read it from
   `HttpClient`'s download progress events; with `fetch`, the body is a stream:
   `response.body.getReader()` plus a `TextDecoder` (see `QuinnConversation.ask`).
+- **Loading a page's data.** The Angular usage page reads `GET api/usage` with `httpResource`: a
+  signal that fetches when the page opens, reports loading and errors, and has `reload()`. React
+  has nothing built in for this, so `usage/Usage.tsx` keeps the result in state and fetches in an
+  effect. Refresh bumps a counter the effect depends on, which runs it again, and the effect's
+  clean-up sets a `cancelled` flag so that a late answer - after the page has gone, or after a
+  newer request - is dropped. Libraries such as TanStack Query package exactly this (caching,
+  retries, refetching); for one request on one page, the effect is enough.
 
 ---
 

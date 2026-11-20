@@ -174,10 +174,27 @@ The `Agent` section of `server/TempHire.Server/appsettings.json` picks the model
   key and stores it in the server's user secrets, never in `appsettings.json`. `-UseOllama`
   switches back.
 
+**Budgets.**  Answers from a paid model cost money, so the server gives each user and each company a
+budget in dollars per day, week and month, for each model: as shipped, $0.50 a day per user and $10
+a month per company for Claude (about 38 and 770 questions); Ollama is free and unlimited.
+
+- **The user menu.**  The signed-in user in the top right corner opens a menu with **Usage** and
+  **Logout**.
+- **The usage page** (`client/src/app/usage/`, route `/usage`) shows, per model, what Quinn's
+  answers cost you and your company today, this week and this month, against the budgets, with the
+  tokens they took.  Bars turn amber at 80% and red when a budget is used up; an unlimited model
+  shows its tokens only.
+- **Quinn's pane** reads the same figures when it opens and after every answer.  While a budget is
+  used up it says which one and how long until it starts over, counting down, and disables the
+  question box until then; the server refuses such a question anyway.  A budget can be overrun
+  slightly: the question that crosses it is answered in full.
+
 The server's README describes [how Quinn works](https://github.com/Breeze/temphire.server#how-it-works),
 [compares the two models](https://github.com/Breeze/temphire.server#ollama-or-claude), and covers
-[setting up Ollama](https://github.com/Breeze/temphire.server#setting-up-ollama) and
-[setting up Claude](https://github.com/Breeze/temphire.server#setting-up-claude) in detail.
+[setting up Ollama](https://github.com/Breeze/temphire.server#setting-up-ollama),
+[setting up Claude](https://github.com/Breeze/temphire.server#setting-up-claude) and
+[the budgets](https://github.com/Breeze/temphire.server#budgets-usage-and-quotas) - what they buy,
+how usage is counted, and how to change the budgets or the prices - in detail.
 
 ## Validation
 
@@ -327,7 +344,8 @@ temphire.react/
             ├── auth-callback/      # where sign-in returns to
             ├── home/
             ├── resource-mgt/       # the workspace, its search, detail, dialogs and sections
-            └── quinn/              # the chat pane
+            ├── quinn/              # the chat pane
+            └── usage/              # Quinn's usage and budgets, from the user menu
 ```
 
 ## Configuration
@@ -336,7 +354,7 @@ temphire.react/
 |---|---|---|
 | `urls`, `ConnectionStrings:*`, `AllowedClientOrigins` | `server.appsettings.json` | This version's server URL (`http://localhost:5100`), databases (`TempHireReact`, `TempHireReactIdentity`) and dev server origin (`http://localhost:5173`), overriding the server's `appsettings.json` |
 | Ports | `server.appsettings.json`, `client/vite.config.ts` | 5100 and 5173; the client's `environment.ts` names the server's |
-| `Agent:*` | `server/TempHire.Server/appsettings.json`, user secrets | Quinn's model; see [Quinn](#quinn) |
+| `Agent:*` | `server/TempHire.Server/appsettings.json`, user secrets | Quinn's model and budgets (`Agent:Quotas`); see [Quinn](#quinn) |
 
 The server's other settings are in [its README](https://github.com/Breeze/temphire.server#configuration).
 
