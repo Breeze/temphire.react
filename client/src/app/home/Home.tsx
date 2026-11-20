@@ -2,6 +2,8 @@ import { Button } from '@mantine/core';
 import { IconArrowRight, IconArrowsExchange, IconDatabase, IconSparkles } from '@tabler/icons-react';
 import { Link } from 'react-router';
 
+import { FrameworkMark } from '../core/FrameworkMark';
+
 import './Home.css';
 
 /**
@@ -37,7 +39,10 @@ export function Home() {
           </Button>
         </div>
         <div className="hero__art" aria-hidden="true">
-          <span className="hero__orb hero__orb--large temphire-orb">T</span>
+          <span className="hero__orb hero__orb--large temphire-orb">
+            T
+            <FrameworkMark />
+          </span>
           <span className="hero__orb hero__orb--small temphire-orb"></span>
         </div>
       </section>

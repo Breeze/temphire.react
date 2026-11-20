@@ -13,6 +13,7 @@ import {
   toolbarActions,
   useToolbarGroups,
 } from './core/services/toolbar';
+import { FrameworkMark } from './core/FrameworkMark';
 import { Quinn } from './quinn/Quinn';
 
 /**
@@ -94,6 +95,7 @@ function Shell() {
           <span className="app-toolbar__brand">
             <span className="app-toolbar__badge temphire-orb" aria-hidden="true">
               T
+              <FrameworkMark />
             </span>
             TempHire
           </span>
