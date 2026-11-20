@@ -2,6 +2,7 @@ import { environment } from '../../environments/environment';
 import { apiRequest, getJson } from '../core/services/api-fetch';
 import { ChangeNotifier } from '../core/services/change-notifier';
 import { describe } from '../core/services/error-handler';
+import { QuotaBlock, UsageDto, quotaBlock, quotaBlockMessage } from '../usage/usage.model';
 import { MentionedPerson, mergePeople } from './link-people';
 
 /** One message in the conversation.  `content` is Markdown, as Quinn wrote it. */
@@ -60,6 +61,12 @@ export interface QuinnState {
   /** Busy, and no answer streaming in yet: the model is still thinking or running tools. */
   readonly thinking: boolean;
   readonly info: AgentInfo | null;
+  /** `GET api/usage`: where the user and company stand with Quinn's budgets; null until read. */
+  readonly usage: UsageDto | null;
+  /** The used-up budget that stops Quinn now, if any; see `tick`. */
+  readonly quotaBlock: QuotaBlock | null;
+  /** What the pane says while a budget stops Quinn, with how long until it starts over. */
+  readonly quotaMessage: string | null;
 }
 
 /**
@@ -77,7 +84,19 @@ export interface QuinnState {
  */
 export class QuinnConversation extends ChangeNotifier {
   private nextId = 1;
-  private state: QuinnState = { messages: [], isOpen: false, busy: false, thinking: false, info: null };
+  private state: QuinnState = {
+    messages: [],
+    isOpen: false,
+    busy: false,
+    thinking: false,
+    info: null,
+    usage: null,
+    quotaBlock: null,
+    quotaMessage: null,
+  };
+
+  /** Whether the usage has been asked for: only once the pane has opened, for users who use Quinn. */
+  private usageWanted = false;
 
   /**
    * Everyone the answers so far could mention.  A follow-up answer often names people from an
@@ -114,6 +133,43 @@ export class QuinnConversation extends ChangeNotifier {
       this.add('assistant', this.introduction(), { intro: true });
     }
     this.set({ isOpen: true });
+
+    // Where the budgets stand: read each time the pane opens, since the user may have asked
+    // elsewhere - another tab - meanwhile.
+    this.usageWanted = true;
+    void this.loadUsage();
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // Budgets
+  //
+  // The server refuses a question while a budget of the model Quinn uses is used up (429, with a
+  // message saying which and for how long).  The pane says so before the user asks: the usage is
+  // read when the pane opens and after every answer, and while a budget stops Quinn, `tick` - every
+  // half minute, from the pane - keeps the countdown current and reads the usage again once the
+  // budget starts over.  Angular derived all this with `computed` signals; here the snapshot
+  // carries it, worked out again by `set` on every change.
+  // ------------------------------------------------------------------------------------------
+
+  /** Reads `GET api/usage`.  A failure leaves the last figures: the server has the final say anyway. */
+  async loadUsage(): Promise<void> {
+    if (!this.usageWanted) {
+      return;
+    }
+    try {
+      this.set({ usage: await getJson<UsageDto>(environment.usageApiRoot) });
+    } catch {
+      // Nothing to show; the server still refuses a question over budget.
+    }
+  }
+
+  /** Updates the countdown, and reads the usage again once a blocking budget has started over. */
+  tick(): void {
+    const block = this.state.quotaBlock;
+    this.set({});
+    if (block && new Date() >= block.resetsAt) {
+      void this.loadUsage();
+    }
   }
 
   close(): void {
@@ -133,7 +189,7 @@ export class QuinnConversation extends ChangeNotifier {
    */
   async ask(question: string): Promise<void> {
     const text = question.trim();
-    if (!text || this.state.busy) {
+    if (!text || this.state.busy || this.state.quotaBlock) {
       return;
     }
 
@@ -210,6 +266,9 @@ export class QuinnConversation extends ChangeNotifier {
       }
       this.knownPeople = people;
       this.set({ busy: false });
+
+      // The answer cost something, and may have used up a budget; a refusal (429) means one is.
+      void this.loadUsage();
     }
   }
 
@@ -217,6 +276,9 @@ export class QuinnConversation extends ChangeNotifier {
   private set(changes: Partial<QuinnState>): void {
     const next = { ...this.state, ...changes };
     next.thinking = next.busy && !next.messages.some((m) => m.streaming);
+    const now = new Date();
+    next.quotaBlock = quotaBlock(next.usage ?? undefined, now);
+    next.quotaMessage = next.quotaBlock ? quotaBlockMessage(next.quotaBlock, now) : null;
     this.state = next;
     this.notify();
   }

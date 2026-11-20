@@ -1,5 +1,5 @@
 import { ActionIcon, Textarea } from '@mantine/core';
-import { IconSend, IconX } from '@tabler/icons-react';
+import { IconHourglass, IconSend, IconX } from '@tabler/icons-react';
 import { MouseEvent, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
@@ -44,6 +44,13 @@ export function Quinn() {
   // Quinn's name and model for the header, loaded once.
   useEffect(() => {
     void conversation.loadInfo();
+  }, [conversation]);
+
+  // The budget countdown: a tick every half minute while the pane exists, which also notices a
+  // budget starting over.  The effect's clean-up stops the timer when the pane goes.
+  useEffect(() => {
+    const clock = setInterval(() => conversation.tick(), 30_000);
+    return () => clearInterval(clock);
   }, [conversation]);
 
   // Escape closes the pane - the Angular `host: { '(document:keydown.escape)': ... }` listener.
@@ -93,7 +100,9 @@ export function Quinn() {
     }
   }, [quinn.isOpen]);
 
-  const canSend = !quinn.busy && !!question.trim();
+  // A used-up budget stops Quinn: no questions until it starts over (see `QuinnConversation`).
+  const blocked = !!quinn.quotaBlock;
+  const canSend = !quinn.busy && !blocked && !!question.trim();
 
   function send(): void {
     if (!canSend) {
@@ -181,7 +190,7 @@ export function Quinn() {
                       key={example.label}
                       type="button"
                       className="quinn-examples__chip"
-                      disabled={quinn.busy}
+                      disabled={quinn.busy || blocked}
                       onClick={() => void conversation.ask(example.question)}
                     >
                       {example.label}
@@ -204,6 +213,19 @@ export function Quinn() {
           )}
         </div>
 
+        {/* A used-up budget: no questions until it starts over, and how long that is. */}
+        {quinn.quotaMessage && (
+          <div className="quinn-quota" role="status">
+            <IconHourglass size={16} className="quinn-quota__icon" aria-hidden="true" />
+            <div>
+              <p className="quinn-quota__text">{quinn.quotaMessage}</p>
+              <button type="button" className="quinn-quota__link" onClick={() => void navigate('/usage')}>
+                See your usage
+              </button>
+            </div>
+          </div>
+        )}
+
         <form
           className="quinn-pane__input"
           onSubmit={(event) => {
@@ -219,7 +241,7 @@ export function Quinn() {
               placeholder="Ask Quinn about your staffing data..."
               aria-label="Your question"
               value={question}
-              disabled={quinn.busy}
+              disabled={quinn.busy || blocked}
               onChange={(event) => setQuestion(event.currentTarget.value)}
               onKeyDown={(event) => {
                 // Enter sends; Shift+Enter starts a new line.

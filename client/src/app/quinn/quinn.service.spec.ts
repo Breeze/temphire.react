@@ -106,8 +106,71 @@ describe('QuinnConversation', () => {
   });
 
   it('introduces itself to the signed-in user', () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ companyName: null, models: [] }))));
     quinn.open();
 
     expect(quinn.getState().messages[0].content).toMatch(/^Hi Anna!.*Harbor Staffing/s);
+  });
+
+  describe('budgets', () => {
+    /** `GET api/usage` with the user's daily Claude budget at `used` of $0.50. */
+    const usage = (used: number) => ({
+      companyName: 'Harbor Staffing',
+      models: [
+        {
+          provider: 'Claude',
+          model: 'claude-sonnet-5-5',
+          isCurrent: true,
+          isUnlimited: false,
+          periods: [
+            {
+              period: 'day',
+              start: '',
+              end: '',
+              resetsAt: new Date(Date.now() + 90 * 60_000).toISOString(),
+              user: { used, limit: 0.5, tokens: 0 },
+              company: { used, limit: 1.5, tokens: 0 },
+            },
+          ],
+        },
+      ],
+    });
+
+    function serve(used: number) {
+      const fetch = vi.fn(async (url: string) => {
+        expect(url).toBe(environment.usageApiRoot);
+        return new Response(JSON.stringify(usage(used)));
+      });
+      vi.stubGlobal('fetch', fetch);
+      return fetch;
+    }
+
+    it('reads the usage when the pane opens, and is not blocked with budget left', async () => {
+      serve(0.2);
+
+      quinn.open();
+      await quinn.loadUsage();
+
+      expect(quinn.getState().usage?.companyName).toBe('Harbor Staffing');
+      expect(quinn.getState().quotaBlock).toBeNull();
+      expect(quinn.getState().quotaMessage).toBeNull();
+    });
+
+    it('says which budget is used up and how long to wait, and asks nothing meanwhile', async () => {
+      const fetch = serve(0.5);
+
+      quinn.open();
+      await quinn.loadUsage();
+      fetch.mockClear();
+
+      expect(quinn.getState().quotaMessage).toBe(
+        "You've used up your daily Quinn allowance ($0.50). You can ask again in 1 hour and 30 minutes.",
+      );
+
+      await quinn.ask('Who knows SQL?');
+
+      expect(fetch).not.toHaveBeenCalled();
+      expect(quinn.getState().messages.filter((m) => m.role === 'user')).toEqual([]);
+    });
   });
 });

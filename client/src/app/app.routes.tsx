@@ -56,6 +56,12 @@ export function createRoutes(services: AppServices): RouteObject[] {
           lazy: () =>
             import('./resource-mgt/ResourceMgt').then((m) => ({ Component: m.ResourceMgt })),
         },
+        {
+          // Quinn's usage and budgets, from the user menu; not a workspace in the toolbar.
+          path: 'usage',
+          loader: authLoader(services),
+          lazy: () => import('./usage/Usage').then((m) => ({ Component: m.Usage })),
+        },
         { index: true, element: <Navigate to="/home" replace /> },
         { path: '*', element: <Navigate to="/home" replace /> },
       ],
