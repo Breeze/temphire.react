@@ -1,0 +1,9 @@
+{
+  "//": "What the shared server (server/, the temphire.server submodule) does differently for the React client: its own URL, databases and dev-server origin, so it can run next to the Angular version.",
+  "urls": "http://localhost:5100",
+  "ConnectionStrings": {
+    "TempHire": "Server=(localdb)\\MSSQLLocalDB;Database=TempHireReact;Trusted_Connection=True;MultipleActiveResultSets=True;TrustServerCertificate=True",
+    "TempHireIdentity": "Server=(localdb)\\MSSQLLocalDB;Database=TempHireReactIdentity;Trusted_Connection=True;MultipleActiveResultSets=True;TrustServerCertificate=True"
+  },
+  "AllowedClientOrigins": [ "http://localhost:5173" ]
+}

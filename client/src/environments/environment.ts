@@ -9,7 +9,7 @@ const development = import.meta.env.DEV;
 
 /**
  * In development the Vite dev server runs on 5173 and TempHire.Server on 5100 (see
- * `launchSettings.json`), so the client talks to the API cross-origin; the server's CORS policy
+ * `server.appsettings.json`), so the client talks to the API cross-origin; the server's CORS policy
  * allows http://localhost:5173.  In production the server serves the app itself, so the paths are
  * relative.
  */

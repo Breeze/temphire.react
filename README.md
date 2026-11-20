@@ -7,7 +7,9 @@ multi-tenancy, roles and OAuth 2.1 sign-in.
 
 This repository is the **React** version. It is a framework conversion of
 [temphire.angular](https://github.com/Breeze/temphire.angular): the same application, screen for
-screen, with the Angular client rewritten in React and the .NET server unchanged. It is meant for
+screen, with the Angular client rewritten in React. Both run on the same .NET server,
+[temphire.server](https://github.com/Breeze/temphire.server), which is a git submodule in each
+repository's `server/` folder (see [The server](#the-server)). It is meant for
 anyone weighing a move from Angular to React - to see what changes, what doesn't, and how the
 concepts map.
 
@@ -28,7 +30,7 @@ side by side.
 | Forms | Signal Forms | Mantine `useForm`; entity inputs bound to Breeze |
 | Tests | Vitest | **Vitest** + React Testing Library |
 | Data | breeze-client 3 | breeze-client 3 - unchanged |
-| Server | ASP.NET Core 10, Breeze .NET 8, EF Core 10, OpenIddict | the same server |
+| Server | [temphire.server](https://github.com/Breeze/temphire.server): ASP.NET Core 10, Breeze .NET 8, EF Core 10, OpenIddict | the same server |
 
 ---
 
@@ -37,16 +39,26 @@ side by side.
 - [.NET SDK](https://dotnet.microsoft.com/download) 10.0 or later
 - [Node.js](https://nodejs.org) **26.13.0**, pinned in `.node-version` (`nvs auto` picks it up)
 - SQL Server **LocalDB** (Visual Studio's "Data storage and processing" workload, or SQL Server
-  Express), or any SQL Server - see the connection strings in `server/TempHire.Server/appsettings.json`
+  Express), or any SQL Server - see the server's
+  [prerequisites](https://github.com/Breeze/temphire.server#prerequisites)
 - For Quinn: [Ollama](https://ollama.com) with `qwen3:4b-instruct` (the default), or an Anthropic
   API key for Claude - see [Quinn](#quinn)
 
 ## Running it
 
+The server is a git submodule, so clone with `--recurse-submodules`:
+
+```
+git clone --recurse-submodules https://github.com/Breeze/temphire.react.git
+```
+
+In a clone made without it, run `git submodule update --init` once.  After a `git pull` that moves
+the submodule to another commit, run `git submodule update` to check that commit out.
+
 TempHire's validation uses a preview of
 [IdeaBlade Validation](https://github.com/Breeze/ideablade-validation), which isn't published yet.
-Its packages are in `packages/`, and `dotnet` and `npm install` take them from there (see
-[Validation](#validation)), so there is nothing extra to install.
+Its packages are in `packages/` and `server/packages/`, and `npm install` and `dotnet` take them
+from there (see [Validation](#validation)), so there is nothing extra to install.
 
 Then two terminals; the server first, because the client loads its Breeze and validation metadata
 from it.
@@ -59,7 +71,9 @@ dotnet run
 ```
 
 On first start it creates and seeds its two databases, `TempHireReact` and `TempHireReactIdentity`:
-two companies, two users each, and 25 staffing resources per company.
+two companies, two users each, and 25 staffing resources per company.  The port and the database
+names are this version's, set in `server.appsettings.json` (see
+[Next to the Angular version](#next-to-the-angular-version)).
 
 **2. Client** (`http://localhost:5173`)
 
@@ -69,23 +83,20 @@ npm install
 npm start
 ```
 
-Vite opens the app; it sends you to the server's sign-in page. The password is **`password`** for
-all the sample users, and in development the sign-in page lists them for one-click sign-in:
-
-| User | Company | Role |
-|---|---|---|
-| `anna@harbor.test` | Harbor Staffing | Editor |
-| `ben@harbor.test` | Harbor Staffing | Reader |
-| `carla@summit.test` | Summit Talent | Editor |
-| `david@summit.test` | Summit Talent | Reader |
-
-An **Editor** can add, change and delete staffing resources; a **Reader** can only look.
+Vite opens the app; it sends you to the server's sign-in page. Sign in as one of the
+[sample users](https://github.com/Breeze/temphire.server#sample-users), such as `anna@harbor.test`
+(an Editor at Harbor Staffing) or `ben@harbor.test` (a Reader there). The password is
+**`password`** for all of them, and in development the sign-in page lists them for one-click
+sign-in.
 
 ### Next to the Angular version
 
 The two versions can run at the same time. This one uses ports 5100 (server) and 5173 (client),
 where the Angular version uses 5000 and 4200, and its own databases, so neither touches the other's
-data. They share the server's user secrets, so a Claude API key stored for one is used by both.
+data. The server is the same; `server.appsettings.json`, in this repository's root, gives it this
+version's URL, databases and dev-server origin, overriding its `appsettings.json` (see
+[In a client repository](https://github.com/Breeze/temphire.server#in-a-client-repository)). The
+two share the server's user secrets, so a Claude API key stored for one is used by both.
 
 ### Building for production
 
@@ -163,26 +174,29 @@ The `Agent` section of `server/TempHire.Server/appsettings.json` picks the model
   key and stores it in the server's user secrets, never in `appsettings.json`. `-UseOllama`
   switches back.
 
-The [Angular version's README](https://github.com/Breeze/temphire.angular#quinn-the-assistant)
-describes how Quinn works, and compares the two models, in detail; none of it changed.
+The server's README describes [how Quinn works](https://github.com/Breeze/temphire.server#how-it-works),
+[compares the two models](https://github.com/Breeze/temphire.server#ollama-or-claude), and covers
+[setting up Ollama](https://github.com/Breeze/temphire.server#setting-up-ollama) and
+[setting up Claude](https://github.com/Breeze/temphire.server#setting-up-claude) in detail.
 
 ## Validation
 
 > **Preview.**  Validation uses a preview of IdeaBlade Validation (`0.1.0-preview.3`), which
-> isn't published to NuGet or npm yet: the builds are in `packages/`, where `nuget.config` and
-> `client/package.json` find them (`packages/README.md` explains how to update them).  The
+> isn't published to NuGet or npm yet: the builds are in `packages/` and `server/packages/`, where
+> `client/package.json` and the server's `nuget.config` find them (`packages/README.md` explains
+> how to update them).  The
 > framework's API may still change before its first release, and so may its name - the
 > `IdeaBlade.Validation` / `@ideablade/validation` packages and their namespaces and imports.
 
 The rules are the server's, in two places: the entities' data annotations (`[Required]`,
 `[StringLength]`), which reach the client in the Breeze metadata, and the validation metadata
-(`TempHire.Server/Validation/validation.metadata.json`) for the rules annotations cannot express -
+(`server/TempHire.Server/Validation/validation.metadata.json`) for the rules annotations cannot express -
 U.S. addresses with a state and a ZIP code, phone number formats, rates, valid dates, and a resource
 with at least one address and one phone number who is at least 18 years old when hired.  Both are
 read by [IdeaBlade.Validation / `@ideablade/validation`](https://github.com/Breeze/ideablade-validation),
-which surfaces every rule as the same kind of `ValidationError` on both sides; the Angular version's
-[Validation comes from the server](https://github.com/Breeze/temphire.angular#validation-comes-from-the-server)
-describes the server half.  On the client:
+which surfaces every rule as the same kind of `ValidationError` on both sides; the server's README
+describes the server half in [Validation](https://github.com/Breeze/temphire.server#validation).
+On the client:
 
 - **At sign-in** `EntityManagerProvider` loads the validation metadata (`api/validation/Metadata`)
   next to the Breeze metadata, gives it Breeze's display names (`displayNameMetadata`) and installs
@@ -212,77 +226,75 @@ describes the server half.  On the client:
 
 ### On the server: validating the database as it will be after the save
 
-A Breeze save bundle holds only what the client changed: the entities it added, modified or
-deleted.  A resource's other addresses, its phone numbers, and the resource itself aren't in it
-unless they changed too.  But a rule about related entities needs them.  "A staffing resource has
-at least one address" reads the resource's addresses (`store('Address')` in the metadata), and a
-save that deletes an address has to be checked against the addresses that remain.
-
-So before it validates, the server loads what the rules read (`SaveValidationStore`, used by
-`TempHirePersistenceManager`):
-
-- **the staffing resources concerned**: the ones in the save, and the ones whose addresses, phone
-  numbers, rates, skills or work experience the save adds, changes, deletes or moves to another
-  resource;
-- **their stored children**, of every child type, so that `store('Address')` sees all of a
-  resource's addresses, not just the ones in the save;
-- **with the save applied on top**: deleted rows are taken out, added and changed ones put in.
-
-The rules then run against **the database as it will be after the save**, not as the client saw it
-when it loaded the data.  That difference matters: another user may have changed or deleted records
-in the meantime.  Say a resource has two addresses, and two users each delete a different one.  On
-each user's screen one address remains, so both saves are valid on the client.  The first save
-goes through.  The second save deletes an address that nobody else touched, so the concurrency
-check below has nothing to catch.  But checked against the database, the resource would be left
-with no address, and the server refuses the save.  Data integrity holds even when no single save
-was wrong on its own (`ARuleBrokenByTwoUsersTogetherIsCaught` in `TempHire.Server.Tests`).
-
-**This isn't something the validation framework does for you.**  It knows the rules, but not the
-model.  To IdeaBlade Validation, `store('Address')` is a name to look up.  Which addresses belong to
-which resource, which entities a save can affect, and how to load them from the database are
-knowledge of TempHire's model, so `SaveValidationStore` is TempHire's own code.  An AI coding
-assistant such as Claude can write and maintain it: it reads the rules in
-`validation.metadata.json`, sees which entities they read (`store(type)`), and works out from the
-model how to load them.  That's how this one was written.  It loads a resource and all of its
-children generically, so a new rule about a resource and its children needs no change.  A rule that
-reads beyond that, such as one comparing a resource with other resources, does.  When the rules
-change, ask the assistant to check that the store still loads everything they read.
+The server checks every save against the same metadata, and not only against what the save holds:
+it loads the related entities the rules read, applies the save on top, and validates **the
+database as it will be after the save**.  So a rule that two users break together - each deleting
+a different one of a resource's two addresses - is caught even though neither save was wrong on its
+own, and no concurrency check would catch it.  The code that loads those entities is TempHire's
+own, written from its model, and an AI coding assistant can keep it in step with the rules.  The
+server's README explains it in
+[Validating the database as it will be after the save](https://github.com/Breeze/temphire.server#validating-the-database-as-it-will-be-after-the-save).
 
 ### Concurrency
 
-Every entity the client can save (`AuditEntityBase`) has a `RowVersion`, an EF Core concurrency
-token, as DevForce's `ConcurrencyStrategy.AutoIncrement` was in the original.  A save only updates
-or deletes a row while it still has the version the client loaded.  If another user saved or deleted
-it in the meantime, the whole save fails with a concurrency conflict (409) and nothing is written.
-The client tells the user so, in plain words, rather than showing the database's message: someone
-else changed this data, so click Refresh to load the latest, then make the changes again and save
-(`CONCURRENCY_CONFLICT` in `core/services/error-handler.ts`).  The lookups (states, address, phone number
-and rate types) have no version: they are read-only, and the server refuses any save that includes
-one.
-
-A concurrency check covers the rows in the save, and validation covers the rules that read rows
-outside it, as in the example above.  Neither serializes two saves that run at exactly the same
-moment: both read the database before either writes.  Closing that gap would take a database
-constraint, or a serializable transaction around validating and writing.
+Every entity the client can save has a `RowVersion`, and a save that would overwrite or delete a
+row someone else saved in the meantime fails with a concurrency conflict (409); see
+[Concurrency](https://github.com/Breeze/temphire.server#concurrency) in the server's README.  The
+client tells the user so, in plain words, rather than showing the database's message: someone else
+changed this data, so click Refresh to load the latest, then make the changes again and save
+(`CONCURRENCY_CONFLICT` in `core/services/error-handler.ts`).
 
 ## The server
 
-The server is the Angular version's, unchanged apart from the client's origin, its ports and its
-database names. Its own documentation therefore applies as it is:
+The server is **ASP.NET Core 10** with the **Breeze .NET server 8** and **EF Core 10** on SQL
+Server, shared with the Angular version.  It lives in its own repository,
+[temphire.server](https://github.com/Breeze/temphire.server), included here as a git submodule in
+`server/`, and its README documents it.  In short, it:
 
-- [Multi-tenancy](https://github.com/Breeze/temphire.angular#multi-tenancy) - each user's company
-  comes from their email domain, and every query and save is confined to it;
-- [Users and sign-in](https://github.com/Breeze/temphire.angular#users-and-sign-in) - ASP.NET Core
-  Identity, the Editor and Reader roles, and OAuth 2.1 with OpenIddict;
-- [Using TempHire's MCP server from Claude Code](https://github.com/Breeze/temphire.angular#using-temphires-mcp-server-from-claude-code) -
+- serves the Breeze metadata, queries and saves, and the validation metadata, and checks every
+  save against the same rules as the client, on the database as it will be after the save;
+- confines each user to their company's data, the company taken from their email domain;
+- signs users in as its own OAuth 2.1 authorization server, with ASP.NET Core Identity and
+  OpenIddict, and enforces the Editor and Reader roles;
+- runs Quinn, with an MCP server that other MCP clients such as Claude Code can use as well -
   with this version's port:
 
   ```
   claude mcp add --transport http temphire-react http://localhost:5100/mcp
   ```
 
-- [The database schema](https://github.com/Breeze/temphire.angular#the-database-schema) and
-  [using a different database](https://github.com/Breeze/temphire.angular#using-a-different-database).
+- creates, migrates and seeds its databases on startup.
+
+What this version sets differently - the server's URL, its databases and the dev server's origin -
+is in `server.appsettings.json` (see [Next to the Angular version](#next-to-the-angular-version)).
+
+The sections of its README:
+
+- [Running it](https://github.com/Breeze/temphire.server#running-it), with the
+  [sample users](https://github.com/Breeze/temphire.server#sample-users) and the
+  [tests](https://github.com/Breeze/temphire.server#tests)
+- [Quinn, the assistant](https://github.com/Breeze/temphire.server#quinn-the-assistant):
+  [how it works](https://github.com/Breeze/temphire.server#how-it-works),
+  [Ollama or Claude](https://github.com/Breeze/temphire.server#ollama-or-claude),
+  [setting up Ollama](https://github.com/Breeze/temphire.server#setting-up-ollama),
+  [setting up Claude](https://github.com/Breeze/temphire.server#setting-up-claude)
+- [Multi-tenancy](https://github.com/Breeze/temphire.server#multi-tenancy)
+- [Users and sign-in](https://github.com/Breeze/temphire.server#users-and-sign-in):
+  [using TempHire's MCP server from Claude Code](https://github.com/Breeze/temphire.server#using-temphires-mcp-server-from-claude-code),
+  [roles](https://github.com/Breeze/temphire.server#roles),
+  [adding an external provider such as Microsoft Entra ID](https://github.com/Breeze/temphire.server#adding-an-external-provider-such-as-microsoft-entra-id)
+- [Validation](https://github.com/Breeze/temphire.server#validation):
+  [validating the database as it will be after the save](https://github.com/Breeze/temphire.server#validating-the-database-as-it-will-be-after-the-save),
+  [concurrency](https://github.com/Breeze/temphire.server#concurrency)
+- [The database schema](https://github.com/Breeze/temphire.server#the-database-schema) and
+  [using a different database](https://github.com/Breeze/temphire.server#using-a-different-database)
+- [Configuration](https://github.com/Breeze/temphire.server#configuration),
+  [layout](https://github.com/Breeze/temphire.server#layout) and
+  [known gaps](https://github.com/Breeze/temphire.server#known-gaps)
+
+**Changing the server.**  `server/` is a clone of temphire.server: commit and push there, then
+commit the submodule's new commit here, so this repository records which server version it runs
+with.
 
 ---
 
@@ -290,9 +302,13 @@ database names. Its own documentation therefore applies as it is:
 
 ```
 temphire.react/
-├── TempHire.React.sln
-├── server/                         # the .NET server, as in temphire.angular
+├── server.appsettings.json         # what the server does differently for this version
+├── server/                         # git submodule: temphire.server (see its README's Layout)
+│   ├── TempHire.sln
+│   ├── TempHire.Model/             # entities, DbContexts, migrations, sample data
+│   ├── TempHire.Server/            # Breeze, validation, OAuth, Quinn and MCP
 │   └── TempHire.Server.Tests/      # saves, concurrency and save-time rules (dotnet test)
+├── packages/                       # the @ideablade/validation preview
 └── client/
     ├── metadata.json               # Breeze metadata exported from the server
     ├── vite.config.ts              # build, dev server and tests
@@ -318,11 +334,11 @@ temphire.react/
 
 | Setting | Where | Notes |
 |---|---|---|
-| `ConnectionStrings:TempHire`, `TempHireIdentity` | `server/TempHire.Server/appsettings.json` | `TempHireReact` and `TempHireReactIdentity` |
-| `AllowedClientOrigins` | `appsettings.json` | The Vite dev server, `http://localhost:5173` |
-| Ports | `server/TempHire.Server/Properties/launchSettings.json`, `client/vite.config.ts` | 5100/5101 and 5173; the client's `environment.ts` names the server's |
-| `Agent:*` | `appsettings.json`, user secrets | Quinn's model; see [Quinn](#quinn) |
-| `OAuth:Origins` | `appsettings.json` (optional) | The server's public origins, behind a proxy |
+| `urls`, `ConnectionStrings:*`, `AllowedClientOrigins` | `server.appsettings.json` | This version's server URL (`http://localhost:5100`), databases (`TempHireReact`, `TempHireReactIdentity`) and dev server origin (`http://localhost:5173`), overriding the server's `appsettings.json` |
+| Ports | `server.appsettings.json`, `client/vite.config.ts` | 5100 and 5173; the client's `environment.ts` names the server's |
+| `Agent:*` | `server/TempHire.Server/appsettings.json`, user secrets | Quinn's model; see [Quinn](#quinn) |
+
+The server's other settings are in [its README](https://github.com/Breeze/temphire.server#configuration).
 
 ## Known gaps
 
