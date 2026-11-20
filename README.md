@@ -181,7 +181,7 @@ The server's README describes [how Quinn works](https://github.com/Breeze/temphi
 
 ## Validation
 
-> **Preview.**  Validation uses a preview of IdeaBlade Validation (`0.1.0-preview.3`), which
+> **Preview.**  Validation uses a preview of IdeaBlade Validation (`0.1.0-preview.4`), which
 > isn't published to NuGet or npm yet: the builds are in `packages/` and `server/packages/`, where
 > `client/package.json` and the server's `nuget.config` find them (`packages/README.md` explains
 > how to update them).  The
