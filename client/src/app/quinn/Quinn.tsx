@@ -1,7 +1,7 @@
 import { ActionIcon, Textarea } from '@mantine/core';
 import { IconSend, IconX } from '@tabler/icons-react';
 import { MouseEvent, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 
 import { useAuth, useServices } from '../core/services/app-services';
 import { renderAnswer } from './markdown';
@@ -16,7 +16,9 @@ import { QuinnLogo } from './QuinnLogo';
  * Port of the Angular client's `quinn/quinn.component.ts`.  The first time the pane opens, Quinn
  * introduces themselves and offers example questions; a click on one asks it.  Answers arrive as
  * Markdown; the people they mention become links to their records.  A link into the app closes the
- * pane and navigates there; any other link opens in a new tab.
+ * pane and navigates there; any other link opens in a new tab.  Any other change of route - the
+ * toolbar, the browser's back button - closes the pane as well, so it never covers the page the
+ * user just went to.
  *
  * **Refs to DOM elements** - `useRef` plus a `ref={...}` attribute - replace Angular's
  * `viewChild(...)`; React fills `ref.current` with the element once it is in the page.
@@ -29,6 +31,7 @@ export function Quinn() {
   const { auth } = useServices();
   const session = useAuth();
   const navigate = useNavigate();
+  const routerLocation = useLocation();
 
   // One conversation for the life of this component; see `QuinnConversation`.
   const [conversation] = useState(() => new QuinnConversation(auth.getState));
@@ -54,6 +57,12 @@ export function Quinn() {
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [conversation]);
+
+  // Every navigation closes the pane - the Angular version's `NavigationEnd` subscription in
+  // `QuinnService`.  The location's `key` is new for every navigation, even to the same URL.
+  useEffect(() => {
+    conversation.close();
+  }, [conversation, routerLocation.key]);
 
   // Keep the newest message in view.
   useEffect(() => {
