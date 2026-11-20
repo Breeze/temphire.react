@@ -15,12 +15,12 @@ where they did.
 
 ## 1. What stayed the same
 
-- **The server.** `server/` is copied from temphire.angular. The only changes point it at the React
-  client and keep it apart from the Angular version: the Vite dev server's origin
-  (`http://localhost:5173`) in `AllowedClientOrigins`, ports 5100/5101 instead of 5000/5001, the
-  databases `TempHireReact` and `TempHireReactIdentity`, comments that described the Angular client,
-  and Quinn's name story ("today's TempHire mixes React, Breeze, ..."). Its user secrets id is the
-  same, so a Claude API key stored for one version works for the other.
+- **The server.** `server/` is the same server as the Angular version's:
+  [temphire.server](https://github.com/Breeze/temphire.server), a git submodule in both
+  repositories.  `server.appsettings.json` points it at the React client and keeps it apart from the
+  Angular version: the Vite dev server's origin (`http://localhost:5173`) in `AllowedClientOrigins`,
+  port 5100 instead of 5000, and the databases `TempHireReact` and `TempHireReactIdentity`.  Its
+  user secrets id is the same, so a Claude API key stored for one version works for the other.
 - **Breeze.** breeze-client 3, the generated entity classes in `core/model` (copied unchanged,
   regenerated with the same `npm run model`), the master manager with its cached lookups, the unit
   of work and its sandboxes, the repositories, the search projection, and validation from the
