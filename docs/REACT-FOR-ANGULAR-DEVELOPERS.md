@@ -256,7 +256,7 @@ Custom hooks are the main way to share logic. TempHire's:
 | `useAuth()` | the session, kept current | reading `AuthService` signals |
 | `useUnitOfWork(uow)` | re-render when an entity changes | reading `unitOfWork.changes()` in a `computed` |
 | `useBusy()` | a busy counter for one component | a component-provided `BusyService` |
-| `useFieldValidation(prop)` | a property's errors in the nearest `ValidationForm` | `#field="ngModel"` in an `ngForm [validationModel]` |
+| `useFieldValidation(prop)` | a property's errors to show in the nearest `ValidationForm` | `#field="fieldErrors"` (the app's `FieldErrorsDirective`) in an `ngForm [validationModel]` |
 | `useToolbarGroup(group)` | show commands in the shell's toolbar | `registerToolbarGroup` |
 | `useLeaveGuard(ask, canLeave)` | ask before leaving with unsaved edits | `canDeactivate` |
 
@@ -519,7 +519,7 @@ Entity fields are bound to Breeze entities instead, through the `Entity*` compon
 
 `value` reads `address.city`; `onChange` writes it; Breeze validates and raises events; the section
 re-renders (section 14) and the field shows the new value and any error. Where Angular needed
-`[(ngModel)]`, a `name` and `#field="ngModel"` on every input, React needs a small component.
+`[(ngModel)]`, a `name` and `#field="fieldErrors"` on every input, React needs a small component.
 
 ---
 
