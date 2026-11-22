@@ -214,7 +214,8 @@ how usage is counted, and how to change the budgets or the prices - in detail.
 The rules are the server's, in two places: the entities' data annotations (`[Required]`,
 `[StringLength]`), which reach the client in the Breeze metadata, and the validation metadata
 (`server/TempHire.Server/Validation/validation.metadata.json`) for the rules annotations cannot express -
-U.S. addresses with a state and a ZIP code, phone number formats, rates, valid dates, and a resource
+U.S. addresses with a state and a ZIP code, phone number formats, rates, valid dates, a plausible
+date of birth (neither in the future nor more than 123 years ago), and a resource
 with at least one address and one phone number who is at least 18 years old when hired.  Both are
 read by [IdeaBlade.Validation / `@ideablade/validation`](https://github.com/Breeze/ideablade-validation),
 which surfaces every rule as the same kind of `ValidationError` on both sides; the server's README
