@@ -36,9 +36,3 @@
 .phone__number {
   width: 7rem;
 }
-
-.phone__primary {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}

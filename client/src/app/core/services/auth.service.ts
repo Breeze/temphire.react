@@ -53,8 +53,6 @@ export interface AuthState {
    * enforces them on every request, from the roles signed into the token.
    */
   readonly roles: readonly string[];
-  /** May see the company's staffing resources: an editor or a reader. */
-  readonly canReadStaffing: boolean;
   /** May add, change and delete staffing resources: an editor. */
   readonly canEditStaffing: boolean;
 }
@@ -289,10 +287,8 @@ export class AuthService extends ChangeNotifier implements TokenSource {
       username: this.user?.username ?? null,
       tenantName: this.user?.tenantName ?? null,
       roles,
-      canReadStaffing: false,
       canEditStaffing: false,
     };
-    state.canReadStaffing = hasAnyRole(state, [Roles.Editor, Roles.Reader]);
     state.canEditStaffing = hasAnyRole(state, [Roles.Editor]);
     return state;
   }
