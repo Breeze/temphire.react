@@ -1,11 +1,5 @@
 import { Button, Loader, ScrollArea, Table, TextInput } from '@mantine/core';
-import {
-  Ref,
-  useEffect,
-  useEffectEvent,
-  useImperativeHandle,
-  useState,
-} from 'react';
+import { Ref, useEffect, useEffectEvent, useImperativeHandle, useState } from 'react';
 
 import { StaffingResourceListItem } from '../core/projections/staffing-resource-list-item';
 import { useSaveCount } from '../core/hooks/use-unit-of-work';
@@ -133,18 +127,13 @@ export function ResourceSearch({ selectedId, onSelectionChange, ref }: ResourceS
     };
   }, [key, query.text, unitOfWorkManager]);
 
-  /** Port of `CanSearch` / `CanClear`. */
-  const canSearch = !!text.trim();
-
   return (
     <div className="search">
       <form
         className="search__bar"
         onSubmit={(event) => {
           event.preventDefault();
-          if (canSearch) {
-            runSearch(text);
-          }
+          runSearch(text);
         }}
       >
         <TextInput
@@ -153,22 +142,21 @@ export function ResourceSearch({ selectedId, onSelectionChange, ref }: ResourceS
           placeholder="Search staffing resources"
           aria-label="Search staffing resources"
           value={text}
-          onChange={(event) => setText(event.currentTarget.value)}
-        />
-        <Button type="submit" disabled={!canSearch}>
-          Search
-        </Button>
-        <Button
-          variant="outline"
-          color="gray"
-          disabled={!canSearch}
-          onClick={() => {
-            setText('');
-            runSearch('');
+          onChange={(event) => {
+            // Emptying the box - the X in it, Escape, or deleting the text - while a search is
+            // filtering the list shows the full list again.  This replaces the original's Clear
+            // button, which the box's own X made redundant.  Its `CanSearch` / `CanClear` also
+            // both required text in the box, so once the user emptied it after a search, the full
+            // list could only come back by typing something and clicking Clear.  Search is now
+            // always enabled: an empty search lists everyone.
+            const value = event.currentTarget.value;
+            setText(value);
+            if (!value && query.text) {
+              runSearch('');
+            }
           }}
-        >
-          Clear
-        </Button>
+        />
+        <Button type="submit">Search</Button>
         {loading && <Loader size="sm" aria-label="Please wait" />}
       </form>
 
