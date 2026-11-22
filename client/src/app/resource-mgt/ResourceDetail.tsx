@@ -1,10 +1,13 @@
+import { useEntityStoreValidation, useErrorVisibility, useErrorVisibilityVersion } from '@ideablade/validation/react';
 import { Loader, Tabs } from '@mantine/core';
+import { IconAlertCircle } from '@tabler/icons-react';
 import { Suspense, lazy, useState } from 'react';
 
 import { StaffingResource } from '../core/model';
 import { ResourceMgtUnitOfWork } from '../core/services/resource-mgt-unit-of-work';
 import './ResourceDetail.css';
 import { ResourceSummary } from './ResourceSummary';
+import { RESOURCE_TABS, countByTab } from './resource-tabs';
 import { ResourceContactInfo } from './sections/ResourceContactInfo';
 
 // Each loaded, as its own chunk, the first time its tab is opened - Angular's `@defer`.
@@ -55,6 +58,22 @@ export function ResourceDetail({ staffingResource, readOnly, unitOfWork }: Secti
     }
   }
 
+  /**
+   * How many errors each tab has to show, so a tab with a problem is marked before the user opens
+   * it.  They come from the continuous validation of the route's unit of work, which the Save
+   * button and the address and phone lists use too, not from the fields: the lazy tabs have none
+   * until they are opened.  Only the errors the screen shows count (`ErrorVisibility`, in
+   * `ResourceMgt`), so a new resource's tabs are not marked until the user breaks a rule or tries
+   * to save.
+   */
+  const validation = useEntityStoreValidation();
+  const visibility = useErrorVisibility();
+  // Re-renders this when a touch or a save attempt changes what the visibility shows.
+  useErrorVisibilityVersion(visibility);
+  const errorCounts = countByTab(
+    (validation?.validationErrors ?? []).filter((error) => visibility?.isShown(error.model, error) ?? true),
+  );
+
   const props: SectionProps = { staffingResource, readOnly, unitOfWork };
 
   return (
@@ -63,10 +82,25 @@ export function ResourceDetail({ staffingResource, readOnly, unitOfWork }: Secti
 
       <Tabs value={activeTab} onChange={selectTab} className="detail__tabs temphire-card">
         <Tabs.List>
-          <Tabs.Tab value="contact">Contact Information</Tabs.Tab>
-          <Tabs.Tab value="rates">Rates</Tabs.Tab>
-          <Tabs.Tab value="work">Work Experience</Tabs.Tab>
-          <Tabs.Tab value="skills">Skills</Tabs.Tab>
+          {RESOURCE_TABS.map((tab) => {
+            const count = errorCounts[tab.value];
+            return (
+              <Tabs.Tab key={tab.value} value={tab.value}>
+                {tab.label}
+                {count > 0 && (
+                  <>
+                    <span className="detail__tab-errors" aria-hidden="true">
+                      <IconAlertCircle size={12} stroke={2.5} />
+                      {count}
+                    </span>
+                    <span className="temphire-visually-hidden">
+                      {count === 1 ? ' (1 error)' : ` (${count} errors)`}
+                    </span>
+                  </>
+                )}
+              </Tabs.Tab>
+            );
+          })}
         </Tabs.List>
 
         <Tabs.Panel value="contact">

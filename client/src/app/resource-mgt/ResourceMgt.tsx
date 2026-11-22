@@ -1,4 +1,4 @@
-import { ErrorVisibility } from '@ideablade/validation';
+import { ErrorVisibility, type ValidationError } from '@ideablade/validation';
 import { breezeIsNew } from '@ideablade/validation/breeze';
 import {
   ErrorVisibilityProvider,
@@ -40,6 +40,7 @@ import { ResourceDetail } from './ResourceDetail';
 import './ResourceMgt.css';
 import { ResourceName, ResourceNameEditor } from './ResourceNameEditor';
 import { ResourceSearch, ResourceSearchHandle } from './ResourceSearch';
+import { describeProblems } from './resource-tabs';
 
 type EditMode = 'view' | 'edit';
 
@@ -124,15 +125,13 @@ export function ResourceMgt() {
   }, [errorVisibility, validationResult]);
 
   /** Shows every error, and says why nothing was saved: Save stays enabled while rules are broken. */
-  function revealErrors(count: number): void {
+  function revealErrors(errors: readonly ValidationError[]): void {
     errorVisibility.revealAll();
     notifications.show({
       color: 'yellow',
       title: 'Not saved',
-      message:
-        count === 1
-          ? 'One problem needs fixing. It is highlighted.'
-          : `${count} problems need fixing. They are highlighted.`,
+      // Which tabs to look on, too: the tabs are marked, but the user is on one of them.
+      message: describeProblems(errors),
     });
   }
 
@@ -224,8 +223,8 @@ export function ResourceMgt() {
     );
 
     if (answer === 'yes') {
-      const errors = validationResult?.validationErrors.length ?? 0;
-      if (errors > 0) {
+      const errors = validationResult?.validationErrors ?? [];
+      if (errors.length > 0) {
         // As with Save: show every error and keep the user here, with their edits.
         revealErrors(errors);
         throw new DialogCancelledError();
@@ -339,8 +338,8 @@ export function ResourceMgt() {
 
     // Nothing is saved while a rule is broken: show every error, including those a new resource has
     // kept hidden so far, and say why nothing happened.
-    const errors = validationResult?.validationErrors.length ?? 0;
-    if (errors > 0) {
+    const errors = validationResult?.validationErrors ?? [];
+    if (errors.length > 0) {
       revealErrors(errors);
       return;
     }
