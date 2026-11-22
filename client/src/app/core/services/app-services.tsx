@@ -6,6 +6,7 @@ import { clientValidationMetadata } from '../validation/client-validation-metada
 import { setTokenSource } from './api-fetch';
 import { AuthService, AuthState } from './auth.service';
 import { EntityManagerProvider } from './entity-manager-provider';
+import { SaveHandler } from './save-handler';
 import { UnitOfWorkManager } from './unit-of-work-manager';
 
 /**
@@ -31,6 +32,8 @@ export interface AppServices {
   readonly auth: AuthService;
   /** The app's validation service; `main.tsx` provides it to the validation hooks. */
   readonly validation: ValidationService;
+  /** How every workspace saves: validates first, and drops the shared cache after a save. */
+  readonly saveHandler: SaveHandler;
 }
 
 export function createAppServices(): AppServices {
@@ -61,12 +64,13 @@ export function createAppServices(): AppServices {
   const emProvider = new EntityManagerProvider(validation);
   const unitOfWorkManager = new UnitOfWorkManager(emProvider);
   const auth = new AuthService(emProvider, unitOfWorkManager);
+  const saveHandler = new SaveHandler(unitOfWorkManager);
 
   // Every request goes through `apiFetch`, which gets its token from the session - the counterpart
   // of `provideHttpClient(withInterceptors([authInterceptor]))`.
   setTokenSource(auth);
 
-  return { emProvider, unitOfWorkManager, auth, validation };
+  return { emProvider, unitOfWorkManager, auth, validation, saveHandler };
 }
 
 const AppServicesContext = createContext<AppServices | null>(null);

@@ -33,7 +33,7 @@ import {
 import { showError } from '../core/services/error-handler';
 import { useLeaveGuard } from '../core/services/leave-guard';
 import { ResourceMgtUnitOfWork } from '../core/services/resource-mgt-unit-of-work';
-import { type SaveOptions, saveUnitOfWork } from '../core/services/save-handler';
+import type { SaveOptions } from '../core/services/save-handler';
 import { ToolbarGroup, useToolbarGroup } from '../core/services/toolbar';
 import { SHARED_UNIT_OF_WORK_KEY } from '../core/services/unit-of-work-manager';
 import { ResourceDetail } from './ResourceDetail';
@@ -71,7 +71,7 @@ type EditMode = 'view' | 'edit';
  *    that created them.  The toolbar always holds the latest ones (see `commands` below).
  */
 export function ResourceMgt() {
-  const { unitOfWorkManager } = useServices();
+  const { unitOfWorkManager, saveHandler } = useServices();
 
   /** Only editors may add, change or delete; readers see the same screens read-only. */
   const mayEdit = useAuth().canEditStaffing;
@@ -125,7 +125,7 @@ export function ResourceMgt() {
   }, [errorVisibility, validationResult]);
 
   /**
-   * How this screen saves (`saveUnitOfWork`): with its validation scope, showing every error
+   * How this screen saves (`SaveHandler`): with its validation scope, showing every error
    * through its error visibility, and saying which tabs to look on, since the tabs are marked but the
    * user is on one of them.  (Angular: `SaveHandler`.)
    */
@@ -223,7 +223,7 @@ export function ResourceMgt() {
     if (answer === 'yes') {
       let saved: boolean;
       try {
-        saved = await busy.run(saveUnitOfWork(unitOfWork, validation, saveOptions()));
+        saved = await busy.run(saveHandler.save(unitOfWork, validation, saveOptions()));
       } catch (error) {
         // The save failed (most likely validation).  Show why, and keep the user on this resource
         // with their edits intact rather than letting them navigate away and lose them.
@@ -234,7 +234,7 @@ export function ResourceMgt() {
         // As with Save: every error is shown; keep the user here, with their edits.
         throw new DialogCancelledError();
       }
-      unitOfWorkManager.get(SHARED_UNIT_OF_WORK_KEY).clear();
+      // The handler has dropped the shared cache, so the next view-mode load re-reads the saved graph.
     } else {
       unitOfWork.rollback();
     }
@@ -336,18 +336,13 @@ export function ResourceMgt() {
     await run(async () => {
       // Select the row before saving.  The save reloads the search list, which keeps the selected
       // row selected if it is there - which, for a newly added resource, it only is from now on.
-      const saved = await saveUnitOfWork(unitOfWork, validation, saveOptions(() => setSelectedId(id)));
+      const saved = await saveHandler.save(unitOfWork, validation, saveOptions(() => setSelectedId(id)));
       if (!saved) {
         // Rules are broken: every error is shown, and a notification says why nothing was saved.
         return;
       }
+      // The handler has dropped the shared cache, so the view-mode load below re-reads the saved graph.
       unitOfWorkManager.releaseIfClean(id);
-
-      // The save happened in the *sandbox* manager, so the shared manager still holds whatever it
-      // last loaded - including children that were just deleted.  A query merge never detaches
-      // cached entities the server omitted, so the shared cache is dropped and re-seeded.
-      unitOfWorkManager.get(SHARED_UNIT_OF_WORK_KEY).clear();
-
       await loadDetail(id, 'view');
     });
   }
@@ -394,14 +389,15 @@ export function ResourceMgt() {
     await run(async () => {
       try {
         resource.delete();
-        await unitOfWork.commit();
+        // Not validated: a record that breaks a rule can still be deleted.  The handler drops the
+        // shared cache, so the deleted graph goes with it.
+        await saveHandler.commit(unitOfWork);
       } catch (error) {
         unitOfWork.rollback();
         throw error;
       }
 
       unitOfWorkManager.remove(id);
-      unitOfWorkManager.get(SHARED_UNIT_OF_WORK_KEY).clear();
       // The save reloads the search list; with nothing selected, it selects the first row.
       clearDetail();
     });
