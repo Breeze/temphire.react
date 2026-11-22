@@ -1,5 +1,5 @@
-import { Button, Loader, ScrollArea, Table, TextInput } from '@mantine/core';
-import { Ref, useEffect, useEffectEvent, useImperativeHandle, useState } from 'react';
+import { Button, Input, Loader, ScrollArea, Table, TextInput } from '@mantine/core';
+import { Ref, useEffect, useEffectEvent, useImperativeHandle, useRef, useState } from 'react';
 
 import { StaffingResourceListItem } from '../core/projections/staffing-resource-list-item';
 import { useSaveCount } from '../core/hooks/use-unit-of-work';
@@ -127,6 +127,24 @@ export function ResourceSearch({ selectedId, onSelectionChange, ref }: ResourceS
     };
   }, [key, query.text, unitOfWorkManager]);
 
+  const box = useRef<HTMLInputElement>(null);
+
+  /**
+   * The box was emptied - its clear button, Escape, or deleting the text.  If a search was
+   * filtering the list, show the full list again.
+   *
+   * This replaces the original's Clear button.  Its `CanSearch` / `CanClear` both required text
+   * in the box, so once the user emptied it after a search, the full list could only come back by
+   * typing something and clicking Clear.  Search is now always enabled: an empty search lists
+   * everyone.
+   */
+  function emptied(): void {
+    setText('');
+    if (query.text) {
+      runSearch('');
+    }
+  }
+
   return (
     <div className="search">
       <form
@@ -141,20 +159,29 @@ export function ResourceSearch({ selectedId, onSelectionChange, ref }: ResourceS
           type="search"
           placeholder="Search staffing resources"
           aria-label="Search staffing resources"
+          ref={box}
           value={text}
           onChange={(event) => {
-            // Emptying the box - the X in it, Escape, or deleting the text - while a search is
-            // filtering the list shows the full list again.  This replaces the original's Clear
-            // button, which the box's own X made redundant.  Its `CanSearch` / `CanClear` also
-            // both required text in the box, so once the user emptied it after a search, the full
-            // list could only come back by typing something and clicking Clear.  Search is now
-            // always enabled: an empty search lists everyone.
             const value = event.currentTarget.value;
-            setText(value);
-            if (!value && query.text) {
-              runSearch('');
+            if (value) {
+              setText(value);
+            } else {
+              emptied();
             }
           }}
+          // Mantine hides the browser's own X in search boxes (so inputs look the same in every
+          // browser), so the box gets Mantine's clear button instead, while it has text.
+          rightSection={
+            text ? (
+              <Input.ClearButton
+                aria-label="Clear search"
+                onClick={() => {
+                  emptied();
+                  box.current?.focus();
+                }}
+              />
+            ) : undefined
+          }
         />
         <Button type="submit">Search</Button>
         {loading && <Loader size="sm" aria-label="Please wait" />}

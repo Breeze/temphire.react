@@ -7,7 +7,8 @@ import { ResourceSearch } from './ResourceSearch';
 
 /**
  * The search box: an emptied box shows the full list again, and there is no Clear button.  Port
- * of the "the search box" tests in the Angular client's `resource-search.component.spec.ts`.
+ * of the "the search box" tests in the Angular client's `resource-search.component.spec.ts`, plus
+ * tests for the clear button in the box (Mantine hides the browser's own X).
  *
  * The original's `CanSearch` / `CanClear` both required text in the box.  So once the user emptied
  * it after a search (the X in it, or deleting the text), both buttons were disabled and the full
@@ -54,7 +55,7 @@ describe('ResourceSearch', () => {
     await press('Search');
     await waitFor(() => expect(searches).toEqual(['', 'Cal']));
 
-    // The X in the box, Escape, or deleting the text: all leave it empty.
+    // Deleting the text.
     await type('');
     await waitFor(() => expect(searches).toEqual(['', 'Cal', '']));
   });
@@ -76,8 +77,46 @@ describe('ResourceSearch', () => {
     await waitFor(() => expect(searches).toEqual(['', '']));
   });
 
-  it('has no Clear button: the X in the box clears it', () => {
+  it('has no Clear button', () => {
     setUp();
     expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull();
+  });
+
+  describe('the clear button in the box', () => {
+    const clearButton = () => screen.queryByRole('button', { name: 'Clear search' });
+
+    it('is there only while the box has text', async () => {
+      const { type } = setUp();
+      expect(clearButton()).toBeNull();
+      await type('Cal');
+      expect(clearButton()).not.toBeNull();
+      await type('');
+      expect(clearButton()).toBeNull();
+    });
+
+    it('empties the box and shows the full list again after a search', async () => {
+      const { type, press } = setUp();
+      await type('Cal');
+      await press('Search');
+      await waitFor(() => expect(searches).toEqual(['', 'Cal']));
+
+      await act(() => fireEvent.click(clearButton()!));
+      await waitFor(() => expect(searches).toEqual(['', 'Cal', '']));
+      const box = screen.getByLabelText('Search staffing resources') as HTMLInputElement;
+      expect(box.value).toBe('');
+      expect(document.activeElement).toBe(box);
+    });
+
+    it('only empties the box while nothing is filtered', async () => {
+      const { type } = setUp();
+      await waitFor(() => expect(searches).toEqual(['']));
+      await type('Cal');
+      await act(() => fireEvent.click(clearButton()!));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(searches).toEqual(['']);
+      expect((screen.getByLabelText('Search staffing resources') as HTMLInputElement).value).toBe(
+        '',
+      );
+    });
   });
 });
