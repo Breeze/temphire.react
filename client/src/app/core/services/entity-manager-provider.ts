@@ -27,10 +27,27 @@ export class EntityManagerProvider {
   /** @param validation the app's validation service, which gets the server's validation metadata. */
   constructor(private readonly validation: ValidationService) {}
 
-  private readonly dataService = new DataService({
-    serviceName: environment.breezeApiRoot,
+  /** The model's metadata, shared by every workspace: `ModelController` on the server. */
+  private readonly modelService = new DataService({
+    serviceName: environment.modelApiRoot,
     hasServerMetadata: true,
   });
+
+  /**
+   * The lookups, a cross-cutting concern loaded once at sign-in: `LookupsController`.  The master
+   * manager queries it; each unit of work then talks to its own workspace's controller (see
+   * `newManager`).  No server metadata of its own: the model's is loaded first.
+   */
+  private readonly lookupsService = this.workspaceService(environment.lookupsApiRoot);
+
+  /**
+   * A data service for a controller that queries and saves but serves no metadata of its own: the
+   * model's is loaded first, from `modelService`.  Without `hasServerMetadata: false`, Breeze would
+   * ask each controller for its own `/Metadata` before the first query.
+   */
+  private workspaceService(serviceName: string): DataService {
+    return new DataService({ serviceName, hasServerMetadata: false });
+  }
 
   /**
    * The one `MetadataStore` for the life of the page.  Breeze binds each registered entity class to
@@ -51,13 +68,13 @@ export class EntityManagerProvider {
   prepare(): Promise<void> {
     if (!this.preparePromise) {
       const masterManager = new EntityManager({
-        dataService: this.dataService,
+        dataService: this.lookupsService,
         metadataStore: this.metadataStore,
       });
 
-      this.preparePromise = this.loadMetadata(masterManager)
-        // One request for every lookup table - the `Lookups` action on the server.
-        .then(() => masterManager.executeQuery(EntityQuery.from('Lookups')))
+      this.preparePromise = this.loadMetadata()
+        // One request for every lookup table - `LookupsController.AllTypes` on the server.
+        .then(() => masterManager.executeQuery(EntityQuery.from('AllTypes')))
         .then(() => {
           this.masterManager = masterManager;
         })
@@ -86,9 +103,9 @@ export class EntityManagerProvider {
    * own: a property's rules whenever it changes, and all of them on every save, so a save with a
    * broken rule never leaves the client.  The server checks the same metadata again when it saves.
    */
-  private loadMetadata(manager: EntityManager): Promise<void> {
+  private loadMetadata(): Promise<void> {
     this.metadataPromise ??= Promise.all([
-      manager.fetchMetadata(),
+      this.metadataStore.fetchMetadata(this.modelService),
       getJson<ModelValidationMetadataMap>(`${environment.validationApiRoot}/Metadata`),
     ])
       .then(([, validationMetadata]) => {
@@ -118,13 +135,21 @@ export class EntityManagerProvider {
     this.preparePromise = undefined;
   }
 
-  /** Creates a fresh manager pre-seeded with the lookup entities. */
-  newManager(): EntityManager {
+  /**
+   * Creates a fresh manager pre-seeded with the lookup entities, which queries and saves through the
+   * server controller at `serviceName`: the controller of the workspace the unit of work belongs to,
+   * such as `ResourceMgtController` (`environment.resourceMgtApiRoot`).
+   *
+   * How the manager is configured stays in here: the unit of work names the controller and nothing
+   * else.  Should one ever need a different setting, add an options parameter after `serviceName`.
+   */
+  newManager(serviceName: string): EntityManager {
     if (!this.masterManager) {
       throw new Error('EntityManagerProvider.prepare() must complete before a manager is created.');
     }
 
     const manager = this.masterManager.createEmptyCopy();
+    manager.setProperties({ dataService: this.workspaceService(serviceName) });
     this.seed(manager);
 
     return manager;

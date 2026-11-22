@@ -12,7 +12,7 @@ import { UnitOfWorkManager } from './unit-of-work-manager';
  * `apiFetch`, and `HttpTestingController` became a stand-in for the browser's `fetch`.
  */
 describe('apiFetch', () => {
-  const resourcesUrl = `${environment.breezeApiRoot}/StaffingResources`;
+  const resourcesUrl = `${environment.resourceMgtApiRoot}/StaffingResources`;
   const tokenUrl = `${environment.authority || window.location.origin}/connect/token`;
 
   let fetchMock: ReturnType<typeof vi.fn>;

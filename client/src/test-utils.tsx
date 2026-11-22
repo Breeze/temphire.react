@@ -24,7 +24,7 @@ export function newTestManager(): EntityManager {
   const metadataStore = new MetadataStore();
   metadataStore.importMetadata(metadata);
   return new EntityManager({
-    dataService: new DataService({ serviceName: 'api/breeze', hasServerMetadata: false }),
+    dataService: new DataService({ serviceName: 'api/resourcemgt', hasServerMetadata: false }),
     metadataStore,
   });
 }

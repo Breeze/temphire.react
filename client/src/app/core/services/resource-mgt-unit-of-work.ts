@@ -1,6 +1,7 @@
 // Copied unchanged from the Angular client's src/app/core/services/resource-mgt-unit-of-work.ts - it has no Angular in it.
 import { EntityManager } from 'breeze-client';
 
+import { environment } from '../../../environments/environment';
 import {
   Address,
   AddressType,
@@ -23,7 +24,8 @@ import { IEntityFactory, UnitOfWork } from './unit-of-work';
  * Port of `DomainServices/IResourceMgtUnitOfWork.cs` + `ResourceMgtUnitOfWork.cs`.
  *
  * The lookup repositories pass `isCached = true`, which is the Breeze equivalent of DevForce's
- * `QueryStrategy.CacheOnly` on a `GlobalCacheRepository`.
+ * `QueryStrategy.CacheOnly` on a `GlobalCacheRepository`: they read the lookups loaded at sign-in
+ * and never query the server.
  */
 export class ResourceMgtUnitOfWork extends UnitOfWork {
   /**
@@ -55,7 +57,8 @@ export class ResourceMgtUnitOfWork extends UnitOfWork {
   readonly search: StaffingResourceSearchService;
 
   constructor(emProvider: EntityManagerProvider, onCommitted?: () => void) {
-    super(emProvider, onCommitted);
+    // Every query and save of this unit of work goes to `ResourceMgtController`.
+    super(emProvider, environment.resourceMgtApiRoot, onCommitted);
 
     this.staffingResources = new StaffingResourceRepository(this.manager);
     this.addresses = this.createRepository(Address);

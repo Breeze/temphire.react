@@ -66,15 +66,18 @@ export class UnitOfWork extends ChangeNotifier {
   readonly version = (): number => this._version;
 
   /**
+   * @param serviceName the URL root of the server controller of the workspace this unit of work
+   *   belongs to: its queries and its saves go there, and nowhere else.
    * @param onCommitted called after every successful save, so the owner can publish it.  This is
    *   the replacement for Punch's `SavedMessage`; see `UnitOfWorkManager.saves`.
    */
   constructor(
     protected readonly emProvider: EntityManagerProvider,
+    serviceName: string,
     private readonly onCommitted: () => void = () => {},
   ) {
     super();
-    this.manager = emProvider.newManager();
+    this.manager = emProvider.newManager(serviceName);
     this.entityStore = breezeEntityStore(this.manager);
 
     const bump = () => {
