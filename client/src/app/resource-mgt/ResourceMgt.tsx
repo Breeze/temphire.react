@@ -124,6 +124,27 @@ export function ResourceMgt() {
     }
   }, [errorVisibility, validationResult]);
 
+  /**
+   * The unit of work's validation errors as it is now, sync and async, for deciding whether to save.
+   *
+   * Not `validationResult`: the continuous validation catches up with an edit a moment later, once
+   * the change has been coalesced (a `setTimeout`), and reaches this component only on the next
+   * render; a handler can even hold an older render's value.  A Save clicked right after an edit
+   * decided on that: it counted too few problems, and with no problems before the edit it would have
+   * saved one it had not seen, leaving Breeze and the server to refuse it.  Validating once here
+   * also waits for async rules.  The fields and the tab marks keep following the continuous result.
+   * (Angular: `currentErrors` in `ResourceMgtComponent`.)
+   */
+  function currentErrors(uow: ResourceMgtUnitOfWork): Promise<ValidationError[]> {
+    return new Promise((resolve, reject) => {
+      // One emission, then it completes.
+      validation.validateEntityStoreOneTime(uow.entityStore).subscribe({
+        next: (result) => resolve(result.validationErrors),
+        error: reject,
+      });
+    });
+  }
+
   /** Shows every error, and says why nothing was saved: Save stays enabled while rules are broken. */
   function revealErrors(errors: readonly ValidationError[]): void {
     errorVisibility.revealAll();
@@ -223,7 +244,7 @@ export function ResourceMgt() {
     );
 
     if (answer === 'yes') {
-      const errors = validationResult?.validationErrors ?? [];
+      const errors = await currentErrors(unitOfWork);
       if (errors.length > 0) {
         // As with Save: show every error and keep the user here, with their edits.
         revealErrors(errors);
@@ -338,7 +359,7 @@ export function ResourceMgt() {
 
     // Nothing is saved while a rule is broken: show every error, including those a new resource has
     // kept hidden so far, and say why nothing happened.
-    const errors = validationResult?.validationErrors ?? [];
+    const errors = await currentErrors(unitOfWork);
     if (errors.length > 0) {
       revealErrors(errors);
       return;

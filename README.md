@@ -223,8 +223,10 @@ On the client:
   (`useValidationScope(unitOfWork.entityStore)`), whose entity store is the unit of work being
   shown.  It also validates that unit of work continuously (`validateEntityStore()`): every live
   entity against every rule, sync and async, the metadata's and Breeze's, again whenever an entity
-  changes.  Save reacts to that one result: nothing is saved while any rule is broken, and Save
-  waits while async rules have yet to answer.
+  changes.  The fields, the tab marks and the Save button follow that one result.  Save itself
+  decides on a validation of its own when it is clicked (`validateEntityStoreOneTime`): the
+  continuous result catches up with an edit a moment later, so a Save clicked right after an edit
+  would otherwise miss it.  Nothing is saved while any rule is broken, async ones included.
 - **Entity editors** wrap each card or row in `<ValidationForm model={entity}>`, which validates the
   whole entity; each `Entity*` input (`core/validation/EntityFields.tsx`) shows the errors to show
   about its property (`useFieldValidation`), and reports the user's edits and leaving the field
