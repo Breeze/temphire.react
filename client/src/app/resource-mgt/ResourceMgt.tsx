@@ -189,7 +189,7 @@ export function ResourceMgt() {
   async function loadDetail(id: string, mode: EditMode): Promise<void> {
     await run(async () => {
       const uow = unitOfWorkManager.get(mode === 'view' ? SHARED_UNIT_OF_WORK_KEY : id);
-      const resource = await uow.loadStaffingResource(id);
+      const resource = await uow.staffingResources.withId(id);
 
       if (!resource) {
         clearDetail();
@@ -509,7 +509,7 @@ export function ResourceMgt() {
       setSelectedId(id);
       const uow = unitOfWorkManager.get(SHARED_UNIT_OF_WORK_KEY);
       try {
-        resource = await busy.run(uow.loadStaffingResource(id));
+        resource = await busy.run(uow.staffingResources.withId(id));
       } catch (error) {
         // Act on it - no half-shown resource - and let the global listener report it.
         clearDetail();

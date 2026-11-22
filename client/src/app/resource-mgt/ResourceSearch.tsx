@@ -105,7 +105,7 @@ export function ResourceSearch({ selectedId, onSelectionChange, ref }: ResourceS
 
     unitOfWorkManager
       .get(SHARED_UNIT_OF_WORK_KEY)
-      .search(query.text)
+      .search.simple(query.text)
       .then(
         (results) => {
           if (current) {
