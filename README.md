@@ -223,21 +223,36 @@ On the client:
   (`useValidationScope(unitOfWork.entityStore)`), whose entity store is the unit of work being
   shown.  It also validates that unit of work continuously (`validateEntityStore()`): every live
   entity against every rule, sync and async, the metadata's and Breeze's, again whenever an entity
-  changes.  Save reacts to that one result: it stays disabled while any rule is broken, and while
-  async rules have yet to answer.
+  changes.  Save reacts to that one result: nothing is saved while any rule is broken, and Save
+  waits while async rules have yet to answer.
 - **Entity editors** wrap each card or row in `<ValidationForm model={entity}>`, which validates the
-  whole entity; each `Entity*` input shows the errors about its property (`useFieldValidation`).
-  Breeze's own rules reach the inputs through the `breeze` validator, the same way as the server's.
-  A rule about two fields shows on both: "at least 18 years old when hired" names both dates, and
-  changing either re-checks the other.
+  whole entity; each `Entity*` input (`core/validation/EntityFields.tsx`) shows the errors to show
+  about its property (`useFieldValidation`), and reports the user's edits and leaving the field
+  with `markTouched`.  Breeze's own rules reach the inputs through the `breeze` validator, the same
+  way as the server's.  A rule about two fields shows on both: "at least 18 years old when hired"
+  names both dates, and changing either re-checks the other.
+- **A new resource is not all red at once.**  `ResourceMgt` creates an `ErrorVisibility` with
+  `breezeIsNew`, reports the unit of work's validation to it (`observeEntities`), and provides it
+  to the detail (`ErrorVisibilityProvider`); validation itself is unchanged.  Loaded entities show
+  all their errors.  A new one - a resource, or an address or phone number added to one - starts
+  with its first errors hidden: a field's show once the user edits or leaves it, and an error the
+  user causes shows at once, on every field it is about, touched or not.  Save stays enabled while
+  rules are broken: clicking it shows every error, and a "Not saved" notification says why nothing
+  happened.  An entity added after that starts with its errors hidden again.  The library's
+  [Showing errors](https://github.com/Breeze/ideablade-validation/blob/main/docs/concepts.md#showing-errors-error-visibility)
+  describes the rules.
 - **Rules about a whole entity**, such as "at least one address", have no field.  Validating the
   whole unit of work keeps them current - deleting a resource's last address breaks the resource's
   rule without changing the resource - and the address and phone lists show them from the same
-  result (`useEntityStoreValidation()`).  A new resource starts without an address or a phone
-  number, and the last one of each can be deleted, so the rule is the user's to satisfy.
+  result (`useEntityStoreValidation()`), through `useShownErrors`, so they follow the same rules: a
+  new resource's messages show on a save attempt, or when the user deletes the last address or
+  phone number.  A new resource starts without an address or a phone number, and the last one of
+  each can be deleted, so the rule is the user's to satisfy.
 - **The name editor** validates a `ResourceName` view model with the service
   (`core/validation/client-validation-metadata.ts`); its properties inherit `StaffingResource`'s
-  Breeze rules with `from`, so nothing is restated.
+  Breeze rules with `from`, so nothing is restated.  It shows a name's errors once the user has
+  left its field (Mantine's `validateInputOnBlur`), not through the screen's `ErrorVisibility`, and
+  OK waits until the names are valid.
 - **Display names live in one place**, `core/model-display-names.ts`, and the validation messages
   use them too.
 

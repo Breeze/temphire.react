@@ -21,7 +21,7 @@ import { Entity } from 'breeze-client';
  *
  * ```html
  * <form ngForm [validationModel]="address">
- *   <input pInputText name="city" [(ngModel)]="address.city" #city="ngModel" [invalid]="city.invalid" />
+ *   <input pInputText name="city" [(ngModel)]="address.city" #city="fieldErrors" [invalid]="city.invalid()" />
  * </form>
  * ```
  *
