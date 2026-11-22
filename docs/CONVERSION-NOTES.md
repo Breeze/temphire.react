@@ -158,6 +158,12 @@ and the pane's effect calls `tick()` every 30 seconds.
   `useSyncExternalStore` through a ten-line base class (`ChangeNotifier`). Zustand or Redux would
   be reasonable for a larger app; here they would add a dependency without removing any code.
 - **Vite** builds and serves the app, as the Angular CLI did (it uses Vite internally, too).
+- **No direct access to the `EntityManager`**, as in the Angular client: components and hooks work
+  with data only through the unit of work (its repositories, factories, services, `commit()` and
+  `rollback()`) and the validation entity store.  The `entityManager` getter both clients
+  inherited from the conversion was never used and is gone.  See "Never reach for the
+  `EntityManager`" in the Angular client's
+  [conversion notes](https://github.com/Breeze/temphire.angular/blob/master/docs/CONVERSION-NOTES.md).
 
 ## 4. Behaviour that changed on purpose
 
