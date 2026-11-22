@@ -116,7 +116,7 @@ npm run lint             # ESLint, including the React Hooks rules
 npm run typecheck        # TypeScript
 
 cd ../server
-dotnet test TempHire.Server.Tests   # saves, concurrency and the rules checked on save
+dotnet test TempHire.Server.Tests   # saves, rules, sample data, queries, who may call what
 ```
 
 ---
@@ -360,7 +360,7 @@ temphire.react/
 │   ├── TempHire.sln
 │   ├── TempHire.Model/             # entities, DbContexts, migrations, sample data
 │   ├── TempHire.Server/            # Breeze, validation, OAuth, Quinn and MCP
-│   └── TempHire.Server.Tests/      # saves, concurrency and save-time rules (dotnet test)
+│   └── TempHire.Server.Tests/      # saves, rules, sample data, queries, who may call what
 ├── packages/                       # the @ideablade/validation preview
 └── client/
     ├── metadata.json               # Breeze metadata exported from the server
@@ -401,6 +401,14 @@ The server's other settings are in [its README](https://github.com/Breeze/temphi
   is the signal to remove it.
 - **The main bundle is large**: about 740 kB, 230 kB compressed - React, Mantine and Breeze - and
   Vite warns about it. The pages themselves load as separate chunks.
-- **No end-to-end tests.** The unit tests cover the services, guards, Breeze field binding, Quinn's
-  conversation and a component regression, and the server tests its saves; the screens were checked
-  by hand in a browser.
+- **No end-to-end tests.** There are unit tests on both tiers: over 100 in the client (Vitest and
+  React Testing Library) and over 60 on the server.  The client's cover:
+  - the services: the sign-in guard, the API and Breeze fetches, the dialogs, the error handler,
+    the save handler and the staffing resource repository;
+  - validation: the server's rules as the client runs them, the field bindings and display names;
+  - Resource Management: the search box, the address list, the tabs' error marks and the "Not
+    saved" message;
+  - Quinn's conversation and links to people, and the usage page.
+
+  The server's are listed in [its README](https://github.com/Breeze/temphire.server#tests).  The
+  screens themselves were checked by hand in a browser.
