@@ -7,6 +7,7 @@ import { useUnitOfWork } from '../../core/hooks/use-unit-of-work';
 import { DialogCancelledError, openDialog } from '../../core/services/dialog.service';
 import { showError } from '../../core/services/error-handler';
 import { EntityTextInput } from '../../core/validation/EntityFields';
+import { useShownErrors } from '../../core/validation/use-shown-errors';
 import { ItemSelector } from '../ItemSelector';
 import type { SectionProps } from '../ResourceDetail';
 import './ResourcePhoneList.css';
@@ -24,8 +25,13 @@ export function ResourcePhoneList({ staffingResource, readOnly, unitOfWork }: Se
 
   /** The resource's "at least one phone number" rule, when it is broken; see the address list. */
   const validation = useEntityStoreValidation();
-  const ruleErrors = (validation?.validationErrors ?? []).filter(
-    (error) => error.model === staffingResource && error.id === 'PHONE_NUMBER_REQUIRED',
+  // On a new resource, the rule is broken from the start: it shows once the user breaks it again
+  // (deletes the last phone number) or tries to save.  See `ErrorVisibility` in `ResourceMgt`.
+  const ruleErrors = useShownErrors(
+    staffingResource,
+    (validation?.validationErrors ?? []).filter(
+      (error) => error.model === staffingResource && error.id === 'PHONE_NUMBER_REQUIRED',
+    ),
   );
 
   /**

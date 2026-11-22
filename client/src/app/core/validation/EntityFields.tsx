@@ -49,7 +49,9 @@ import { Entity } from 'breeze-client';
  * of truth, as it was with `ngModel`.
  *
  * The error shows as a red border (Mantine's `error` prop) with the message on hover, as in the
- * Angular client.
+ * Angular client.  Which errors show is the screen's `ErrorVisibility`'s decision (`ResourceMgt`):
+ * a new entity's errors wait until the user has touched the field, caused the error, or tried to
+ * save.  Each input reports its touches - an edit, or leaving it - with `markTouched`.
  */
 type EntityProps<T extends Entity> = {
   entity: T;
@@ -78,13 +80,17 @@ export function EntityTextInput<T extends Entity>({
   property,
   ...rest
 }: EntityProps<T> & Omit<TextInputProps, 'value' | 'onChange' | 'error'>) {
-  const { message } = useFieldValidation(property);
+  const field = useFieldValidation(property);
   return (
     <TextInput
       {...rest}
-      {...errorProps(message)}
+      {...errorProps(field.message)}
+      onBlur={field.markTouched}
       value={(read(entity, property) as string | null) ?? ''}
-      onChange={(event) => write(entity, property, event.currentTarget.value)}
+      onChange={(event) => {
+        write(entity, property, event.currentTarget.value);
+        field.markTouched();
+      }}
     />
   );
 }
@@ -94,13 +100,17 @@ export function EntityTextarea<T extends Entity>({
   property,
   ...rest
 }: EntityProps<T> & Omit<TextareaProps, 'value' | 'onChange' | 'error'>) {
-  const { message } = useFieldValidation(property);
+  const field = useFieldValidation(property);
   return (
     <Textarea
       {...rest}
-      {...errorProps(message)}
+      {...errorProps(field.message)}
+      onBlur={field.markTouched}
       value={(read(entity, property) as string | null) ?? ''}
-      onChange={(event) => write(entity, property, event.currentTarget.value)}
+      onChange={(event) => {
+        write(entity, property, event.currentTarget.value);
+        field.markTouched();
+      }}
     />
   );
 }
@@ -111,13 +121,17 @@ export function EntitySelect<T extends Entity>({
   property,
   ...rest
 }: EntityProps<T> & Omit<SelectProps, 'value' | 'onChange' | 'error'>) {
-  const { message } = useFieldValidation(property);
+  const field = useFieldValidation(property);
   return (
     <Select
       {...rest}
-      {...errorProps(message)}
+      {...errorProps(field.message)}
+      onBlur={field.markTouched}
       value={(read(entity, property) as string | null) ?? null}
-      onChange={(value) => write(entity, property, value)}
+      onChange={(value) => {
+        write(entity, property, value);
+        field.markTouched();
+      }}
     />
   );
 }
@@ -128,13 +142,17 @@ export function EntityNumberInput<T extends Entity>({
   property,
   ...rest
 }: EntityProps<T> & Omit<NumberInputProps, 'value' | 'onChange' | 'error'>) {
-  const { message } = useFieldValidation(property);
+  const field = useFieldValidation(property);
   return (
     <NumberInput
       {...rest}
-      {...errorProps(message)}
+      {...errorProps(field.message)}
+      onBlur={field.markTouched}
       value={(read(entity, property) as number | null) ?? ''}
-      onChange={(value) => write(entity, property, toNumber(value))}
+      onChange={(value) => {
+        write(entity, property, toNumber(value));
+        field.markTouched();
+      }}
     />
   );
 }
@@ -162,13 +180,17 @@ export function EntityDateInput<T extends Entity>({
   property,
   ...rest
 }: EntityProps<T> & Omit<DateInputProps, 'value' | 'onChange' | 'error'>) {
-  const { message } = useFieldValidation(property);
+  const field = useFieldValidation(property);
   return (
     <DateInput
       {...rest}
-      {...errorProps(message)}
+      {...errorProps(field.message)}
+      onBlur={field.markTouched}
       value={toDateString(read(entity, property) as Date | null)}
-      onChange={(value) => write(entity, property, value ? new Date(`${value}T00:00:00`) : null)}
+      onChange={(value) => {
+        write(entity, property, value ? new Date(`${value}T00:00:00`) : null);
+        field.markTouched();
+      }}
     />
   );
 }

@@ -7,6 +7,7 @@ import { useUnitOfWork } from '../../core/hooks/use-unit-of-work';
 import { DialogCancelledError, openDialog } from '../../core/services/dialog.service';
 import { showError } from '../../core/services/error-handler';
 import { EntitySelect, EntityTextInput } from '../../core/validation/EntityFields';
+import { useShownErrors } from '../../core/validation/use-shown-errors';
 import { ItemSelector } from '../ItemSelector';
 import type { SectionProps } from '../ResourceDetail';
 import './ResourceAddressList.css';
@@ -39,8 +40,13 @@ export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: 
    * the route's validation service shares it.
    */
   const validation = useEntityStoreValidation();
-  const ruleErrors = (validation?.validationErrors ?? []).filter(
-    (error) => error.model === staffingResource && error.id === 'ADDRESS_REQUIRED',
+  // On a new resource, the rule is broken from the start: it shows once the user breaks it again
+  // (deletes the last address) or tries to save.  See `ErrorVisibility` in `ResourceMgt`.
+  const ruleErrors = useShownErrors(
+    staffingResource,
+    (validation?.validationErrors ?? []).filter(
+      (error) => error.model === staffingResource && error.id === 'ADDRESS_REQUIRED',
+    ),
   );
 
   /**
