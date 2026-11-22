@@ -4,8 +4,7 @@ import { IconPlus } from '@tabler/icons-react';
 
 import { Address, AddressType } from '../../core/model';
 import { useUnitOfWork } from '../../core/hooks/use-unit-of-work';
-import { DialogCancelledError, openDialog } from '../../core/services/dialog.service';
-import { showError } from '../../core/services/error-handler';
+import { openDialog } from '../../core/services/dialog.service';
 import { EntitySelect, EntityTextInput } from '../../core/validation/EntityFields';
 import { ItemSelector } from '../ItemSelector';
 import type { SectionProps } from '../ResourceDetail';
@@ -64,24 +63,21 @@ export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: 
       return;
     }
 
-    try {
-      const addressType = await openDialog<AddressType>(
-        (close) => (
-          <ItemSelector
-            prompt="Select type:"
-            items={unitOfWork.addressTypes.allInCache('displayName')}
-            label={(type) => type.displayName}
-            onClose={close}
-          />
-        ),
-        { title: 'Add an address', size: '24rem' },
-      );
-      staffingResource.addAddress(addressType);
-    } catch (error) {
-      if (!(error instanceof DialogCancelledError)) {
-        showError(error);
-      }
+    const addressType = await openDialog<AddressType>(
+      (close) => (
+        <ItemSelector
+          prompt="Select type:"
+          items={unitOfWork.addressTypes.allInCache('displayName')}
+          label={(type) => type.displayName}
+          onClose={close}
+        />
+      ),
+      { title: 'Add an address', size: '24rem' },
+    );
+    if (!addressType) {
+      return; // cancelled
     }
+    staffingResource.addAddress(addressType);
   }
 
   return (

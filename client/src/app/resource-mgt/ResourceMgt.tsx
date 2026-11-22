@@ -23,13 +23,7 @@ import { StaffingResourceListItem } from '../core/projections/staffing-resource-
 import { useBusy } from '../core/hooks/use-busy';
 import { useUnitOfWork } from '../core/hooks/use-unit-of-work';
 import { useAuth, useServices } from '../core/services/app-services';
-import {
-  DialogCancelledError,
-  confirm,
-  confirmYesNo,
-  confirmYesNoCancel,
-  openDialog,
-} from '../core/services/dialog.service';
+import { confirm, confirmYesNo, confirmYesNoCancel, openDialog } from '../core/services/dialog.service';
 import { showError } from '../core/services/error-handler';
 import { useLeaveGuard } from '../core/services/leave-guard';
 import { ResourceMgtUnitOfWork } from '../core/services/resource-mgt-unit-of-work';
@@ -161,15 +155,14 @@ export function ResourceMgt() {
   // Internals
   // ------------------------------------------------------------------------------------------
 
-  /** Runs an operation with the busy indicator up, reporting failures in a toast. */
-  async function run(operation: () => Promise<void>): Promise<void> {
-    try {
-      await busy.run(operation());
-    } catch (error) {
-      if (!(error instanceof DialogCancelledError)) {
-        showError(error);
-      }
-    }
+  /**
+   * Runs an operation with the busy indicator up.  A failure propagates: the command is called from
+   * a click, which ignores the promise, so the rejection reaches the window's `unhandledrejection`
+   * listener in `main.tsx`, and `showError` reports it.  This screen can't do anything about it.
+   * (Angular: the global `ErrorHandler`.)
+   */
+  function run(operation: () => Promise<void>): Promise<void> {
+    return busy.run(operation());
   }
 
   function attach(uow: ResourceMgtUnitOfWork, resource: StaffingResource, mode: EditMode): void {
@@ -209,30 +202,38 @@ export function ResourceMgt() {
 
   /**
    * Port of `StaffingResourceDetailViewModel.CanClose`: offer to save, discard or stay put when
-   * navigating away from a resource with pending edits.  Throws `DialogCancelledError` to stay.
+   * navigating away from a resource with pending edits.
+   *
+   * @returns true when the user may leave: nothing to save, saved, or discarded. False to stay:
+   * Cancel, or a save that didn't happen.
    */
-  async function confirmDiscardPendingChanges(): Promise<void> {
+  async function confirmDiscardPendingChanges(): Promise<boolean> {
     if (!unitOfWork || !staffingResourceId || !unitOfWork.hasChanges()) {
-      return;
+      return true;
     }
 
     const answer = await confirmYesNoCancel(
       'There are unsaved changes. Would you like to save your changes?',
     );
 
+    if (answer === 'cancel') {
+      return false;
+    }
+
     if (answer === 'yes') {
       let saved: boolean;
       try {
         saved = await busy.run(saveHandler.save(unitOfWork, validation, saveOptions()));
       } catch (error) {
-        // The save failed (most likely validation).  Show why, and keep the user on this resource
-        // with their edits intact rather than letting them navigate away and lose them.
+        // The one failure this screen catches, because it acts on it: the user stays on this
+        // resource with their edits instead of leaving and losing them.  It is still reported, by
+        // the same `showError` the global listeners call.
         showError(error);
-        throw new DialogCancelledError();
+        return false;
       }
       if (!saved) {
         // As with Save: every error is shown; keep the user here, with their edits.
-        throw new DialogCancelledError();
+        return false;
       }
       // The handler has dropped the shared cache, so the next view-mode load re-reads the saved graph.
     } else {
@@ -240,19 +241,12 @@ export function ResourceMgt() {
     }
 
     unitOfWorkManager.releaseIfClean(staffingResourceId);
+    return true;
   }
 
   /** Port of the Angular `canDeactivate`; resolves false to stay. */
-  async function canLeave(): Promise<boolean> {
-    try {
-      await confirmDiscardPendingChanges();
-      return true;
-    } catch (error) {
-      if (!(error instanceof DialogCancelledError)) {
-        showError(error);
-      }
-      return false;
-    }
+  function canLeave(): Promise<boolean> {
+    return confirmDiscardPendingChanges();
   }
 
   // Leaving for another page with unsaved edits asks first - Angular's `pendingChangesGuard`.
@@ -268,15 +262,10 @@ export function ResourceMgt() {
       return;
     }
 
-    try {
-      await confirmDiscardPendingChanges();
-    } catch (error) {
-      if (error instanceof DialogCancelledError) {
-        // Put the grid selection back where it was.
-        setSelectedId(staffingResourceId);
-        return;
-      }
-      throw error;
+    if (!(await confirmDiscardPendingChanges())) {
+      // Put the grid selection back where it was.
+      setSelectedId(staffingResourceId);
+      return;
     }
 
     setSelectedId(item.id);
@@ -289,17 +278,12 @@ export function ResourceMgt() {
 
   /** Port of `ResourceMgtViewModel.Add`. */
   async function add(): Promise<void> {
-    let name: ResourceName;
-    try {
-      name = await openDialog<ResourceName>((close) => <ResourceNameEditor onClose={close} />, {
-        title: 'Add a staffing resource',
-        size: '26rem',
-      });
-    } catch (error) {
-      if (error instanceof DialogCancelledError) {
-        return;
-      }
-      throw error;
+    const name = await openDialog<ResourceName>((close) => <ResourceNameEditor onClose={close} />, {
+      title: 'Add a staffing resource',
+      size: '26rem',
+    });
+    if (!name) {
+      return; // cancelled
     }
 
     await run(async () => {
@@ -375,15 +359,8 @@ export function ResourceMgt() {
       return;
     }
 
-    try {
-      if ((await confirmYesNo(`Are you sure you want to delete ${resource.fullName}?`)) !== 'yes') {
-        return;
-      }
-    } catch (error) {
-      if (error instanceof DialogCancelledError) {
-        return;
-      }
-      throw error;
+    if ((await confirmYesNo(`Are you sure you want to delete ${resource.fullName}?`)) !== 'yes') {
+      return;
     }
 
     await run(async () => {
@@ -410,17 +387,11 @@ export function ResourceMgt() {
       return;
     }
 
-    if (unitOfWork.hasChanges()) {
-      try {
-        await confirm(
-          'There are unsaved changes. Refreshing the data will discard all unsaved changes.',
-        );
-      } catch (error) {
-        if (error instanceof DialogCancelledError) {
-          return;
-        }
-        throw error;
-      }
+    if (
+      unitOfWork.hasChanges() &&
+      (await confirm('There are unsaved changes. Refreshing the data will discard all unsaved changes.')) !== 'ok'
+    ) {
+      return;
     }
 
     await run(async () => {
@@ -531,21 +502,19 @@ export function ResourceMgt() {
 
     let resource = staffingResource;
     if (staffingResourceId !== id || !isReadOnly) {
-      try {
-        await confirmDiscardPendingChanges();
-      } catch (error) {
-        if (!(error instanceof DialogCancelledError)) {
-          showError(error);
-        }
+      if (!(await confirmDiscardPendingChanges())) {
         return;
       }
 
       setSelectedId(id);
       const uow = unitOfWorkManager.get(SHARED_UNIT_OF_WORK_KEY);
-      resource = await busy.run(uow.loadStaffingResource(id)).catch((error) => {
-        showError(error);
-        return null;
-      });
+      try {
+        resource = await busy.run(uow.loadStaffingResource(id));
+      } catch (error) {
+        // Act on it - no half-shown resource - and let the global listener report it.
+        clearDetail();
+        throw error;
+      }
       if (!resource) {
         clearDetail();
         return;

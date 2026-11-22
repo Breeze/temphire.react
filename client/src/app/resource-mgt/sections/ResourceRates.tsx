@@ -4,8 +4,7 @@ import { IconPlus } from '@tabler/icons-react';
 
 import { RateType } from '../../core/model';
 import { useUnitOfWork } from '../../core/hooks/use-unit-of-work';
-import { DialogCancelledError, openDialog } from '../../core/services/dialog.service';
-import { showError } from '../../core/services/error-handler';
+import { openDialog } from '../../core/services/dialog.service';
 import { EntityNumberInput } from '../../core/validation/EntityFields';
 import { ItemSelector } from '../ItemSelector';
 import type { SectionProps } from '../ResourceDetail';
@@ -40,24 +39,21 @@ export function ResourceRates({ staffingResource, readOnly, unitOfWork }: Sectio
       return;
     }
 
-    try {
-      const rateType = await openDialog<RateType>(
-        (close) => (
-          <ItemSelector
-            prompt="Select type:"
-            items={unitOfWork.rateTypes.allInCache('displayName')}
-            label={(type) => type.displayName}
-            onClose={close}
-          />
-        ),
-        { title: 'Add a rate', size: '24rem' },
-      );
-      staffingResource.addRate(rateType);
-    } catch (error) {
-      if (!(error instanceof DialogCancelledError)) {
-        showError(error);
-      }
+    const rateType = await openDialog<RateType>(
+      (close) => (
+        <ItemSelector
+          prompt="Select type:"
+          items={unitOfWork.rateTypes.allInCache('displayName')}
+          label={(type) => type.displayName}
+          onClose={close}
+        />
+      ),
+      { title: 'Add a rate', size: '24rem' },
+    );
+    if (!rateType) {
+      return; // cancelled
     }
+    staffingResource.addRate(rateType);
   }
 
   return (

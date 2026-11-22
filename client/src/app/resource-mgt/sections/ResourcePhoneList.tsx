@@ -4,8 +4,7 @@ import { IconPlus } from '@tabler/icons-react';
 
 import { PhoneNumber, PhoneNumberType } from '../../core/model';
 import { useUnitOfWork } from '../../core/hooks/use-unit-of-work';
-import { DialogCancelledError, openDialog } from '../../core/services/dialog.service';
-import { showError } from '../../core/services/error-handler';
+import { openDialog } from '../../core/services/dialog.service';
 import { EntityTextInput } from '../../core/validation/EntityFields';
 import { ItemSelector } from '../ItemSelector';
 import type { SectionProps } from '../ResourceDetail';
@@ -51,24 +50,21 @@ export function ResourcePhoneList({ staffingResource, readOnly, unitOfWork }: Se
       return;
     }
 
-    try {
-      const type = await openDialog<PhoneNumberType>(
-        (close) => (
-          <ItemSelector
-            prompt="Select type:"
-            items={unitOfWork.phoneNumberTypes.allInCache('name')}
-            label={(item) => item.name}
-            onClose={close}
-          />
-        ),
-        { title: 'Add a phone number', size: '24rem' },
-      );
-      staffingResource.addPhoneNumber(type);
-    } catch (error) {
-      if (!(error instanceof DialogCancelledError)) {
-        showError(error);
-      }
+    const type = await openDialog<PhoneNumberType>(
+      (close) => (
+        <ItemSelector
+          prompt="Select type:"
+          items={unitOfWork.phoneNumberTypes.allInCache('name')}
+          label={(item) => item.name}
+          onClose={close}
+        />
+      ),
+      { title: 'Add a phone number', size: '24rem' },
+    );
+    if (!type) {
+      return; // cancelled
     }
+    staffingResource.addPhoneNumber(type);
   }
 
   return (

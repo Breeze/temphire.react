@@ -2,8 +2,7 @@ import { ValidationForm, useFieldValidation } from '@ideablade/validation/react'
 import { IconCalendar, IconMapPin, IconPencil, IconPhone } from '@tabler/icons-react';
 
 import { useUnitOfWork } from '../core/hooks/use-unit-of-work';
-import { DialogCancelledError, openDialog } from '../core/services/dialog.service';
-import { showError } from '../core/services/error-handler';
+import { openDialog } from '../core/services/dialog.service';
 import { EntityDateInput, EntityTextarea } from '../core/validation/EntityFields';
 import type { SectionProps } from './ResourceDetail';
 import { ResourceName, ResourceNameEditor } from './ResourceNameEditor';
@@ -34,35 +33,32 @@ export function ResourceSummary({ staffingResource, readOnly, unitOfWork }: Sect
       return;
     }
 
-    try {
-      const name = await openDialog<ResourceName>(
-        (close) => (
-          <ResourceNameEditor
-            name={{
-              firstName: staffingResource.firstName ?? '',
-              middleName: staffingResource.middleName ?? '',
-              lastName: staffingResource.lastName ?? '',
-            }}
-            onClose={close}
-          />
-        ),
-        { title: 'Edit name', size: '26rem' },
-      );
-
-      // Writing to a prop: React's rules assume props are immutable, and its lint rule says so.  A
-      // Breeze entity is mutable on purpose - it tracks its own changes - and React hears about
-      // them through `useUnitOfWork`, so this is how entities are edited.  See
-      // docs/REACT-FOR-ANGULAR-DEVELOPERS.md, "Breeze entities and React's immutability".
-      /* eslint-disable react-hooks/immutability */
-      staffingResource.firstName = name.firstName;
-      staffingResource.middleName = name.middleName;
-      staffingResource.lastName = name.lastName;
-      /* eslint-enable react-hooks/immutability */
-    } catch (error) {
-      if (!(error instanceof DialogCancelledError)) {
-        showError(error);
-      }
+    const name = await openDialog<ResourceName>(
+      (close) => (
+        <ResourceNameEditor
+          name={{
+            firstName: staffingResource.firstName ?? '',
+            middleName: staffingResource.middleName ?? '',
+            lastName: staffingResource.lastName ?? '',
+          }}
+          onClose={close}
+        />
+      ),
+      { title: 'Edit name', size: '26rem' },
+    );
+    if (!name) {
+      return; // cancelled
     }
+
+    // Writing to a prop: React's rules assume props are immutable, and its lint rule says so.  A
+    // Breeze entity is mutable on purpose - it tracks its own changes - and React hears about
+    // them through `useUnitOfWork`, so this is how entities are edited.  See
+    // docs/REACT-FOR-ANGULAR-DEVELOPERS.md, "Breeze entities and React's immutability".
+    /* eslint-disable react-hooks/immutability */
+    staffingResource.firstName = name.firstName;
+    staffingResource.middleName = name.middleName;
+    staffingResource.lastName = name.lastName;
+    /* eslint-enable react-hooks/immutability */
   }
 
   return (

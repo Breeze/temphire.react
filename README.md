@@ -140,8 +140,14 @@ explains each point.
 - **Routing.** React Router loaders check the session and the roles before a page renders - what
   Angular's guards did - and `useBlocker` asks before leaving Resource Management with unsaved
   edits.
-- **Dialogs** are promise-returning functions (`openDialog`, `confirm`, ...) over Mantine's modals,
-  which reject with `DialogCancelledError` when cancelled, as in the Angular and WPF versions.
+- **Dialogs** are promise-returning functions (`openDialog`, `confirm`, ...) over Mantine's modals.
+  They resolve with what the user chose: a message box with its button (`'ok'`, `'cancel'`, ...), a
+  dialog with its result or `undefined`.  Cancelling is an answer, not an error.
+- **Errors** go to one place.  `main.tsx` passes the window's `error` and `unhandledrejection` events
+  to `showError`, and an `ErrorBoundary` catches errors thrown while rendering - together what
+  Angular's global `ErrorHandler` does.  A command that fails, called from a click, reaches
+  `showError` that way; components catch only an error they act on, such as rolling back a
+  failed delete.
 
 ### Entity classes are generated
 
