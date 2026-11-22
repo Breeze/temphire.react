@@ -1,4 +1,4 @@
-import { ErrorVisibility, type ValidationError } from '@ideablade/validation';
+import { ErrorVisibility } from '@ideablade/validation';
 import { breezeIsNew } from '@ideablade/validation/breeze';
 import {
   ErrorVisibilityProvider,
@@ -7,7 +7,6 @@ import {
   useValidationScope,
 } from '@ideablade/validation/react';
 import { Loader } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
 import {
   IconDeviceFloppy,
   IconPencil,
@@ -34,6 +33,7 @@ import {
 import { showError } from '../core/services/error-handler';
 import { useLeaveGuard } from '../core/services/leave-guard';
 import { ResourceMgtUnitOfWork } from '../core/services/resource-mgt-unit-of-work';
+import { type SaveOptions, saveUnitOfWork } from '../core/services/save-handler';
 import { ToolbarGroup, useToolbarGroup } from '../core/services/toolbar';
 import { SHARED_UNIT_OF_WORK_KEY } from '../core/services/unit-of-work-manager';
 import { ResourceDetail } from './ResourceDetail';
@@ -125,35 +125,12 @@ export function ResourceMgt() {
   }, [errorVisibility, validationResult]);
 
   /**
-   * The unit of work's validation errors as it is now, sync and async, for deciding whether to save.
-   *
-   * Not `validationResult`: the continuous validation catches up with an edit a moment later, once
-   * the change has been coalesced (a `setTimeout`), and reaches this component only on the next
-   * render; a handler can even hold an older render's value.  A Save clicked right after an edit
-   * decided on that: it counted too few problems, and with no problems before the edit it would have
-   * saved one it had not seen, leaving Breeze and the server to refuse it.  Validating once here
-   * also waits for async rules.  The fields and the tab marks keep following the continuous result.
-   * (Angular: `currentErrors` in `ResourceMgtComponent`.)
+   * How this screen saves (`saveUnitOfWork`): with its validation scope, showing every error
+   * through its error visibility, and saying which tabs to look on, since the tabs are marked but the
+   * user is on one of them.  (Angular: `SaveHandler`.)
    */
-  function currentErrors(uow: ResourceMgtUnitOfWork): Promise<ValidationError[]> {
-    return new Promise((resolve, reject) => {
-      // One emission, then it completes.
-      validation.validateEntityStoreOneTime(uow.entityStore).subscribe({
-        next: (result) => resolve(result.validationErrors),
-        error: reject,
-      });
-    });
-  }
-
-  /** Shows every error, and says why nothing was saved: Save stays enabled while rules are broken. */
-  function revealErrors(errors: readonly ValidationError[]): void {
-    errorVisibility.revealAll();
-    notifications.show({
-      color: 'yellow',
-      title: 'Not saved',
-      // Which tabs to look on, too: the tabs are marked, but the user is on one of them.
-      message: describeProblems(errors),
-    });
+  function saveOptions(beforeCommit?: () => void): SaveOptions {
+    return { visibility: errorVisibility, describe: describeProblems, beforeCommit };
   }
 
   const staffingResourceId = staffingResource?.id ?? null;
@@ -244,21 +221,20 @@ export function ResourceMgt() {
     );
 
     if (answer === 'yes') {
-      const errors = await currentErrors(unitOfWork);
-      if (errors.length > 0) {
-        // As with Save: show every error and keep the user here, with their edits.
-        revealErrors(errors);
-        throw new DialogCancelledError();
-      }
+      let saved: boolean;
       try {
-        await busy.run(unitOfWork.commit());
-        unitOfWorkManager.get(SHARED_UNIT_OF_WORK_KEY).clear();
+        saved = await busy.run(saveUnitOfWork(unitOfWork, validation, saveOptions()));
       } catch (error) {
         // The save failed (most likely validation).  Show why, and keep the user on this resource
         // with their edits intact rather than letting them navigate away and lose them.
         showError(error);
         throw new DialogCancelledError();
       }
+      if (!saved) {
+        // As with Save: every error is shown; keep the user here, with their edits.
+        throw new DialogCancelledError();
+      }
+      unitOfWorkManager.get(SHARED_UNIT_OF_WORK_KEY).clear();
     } else {
       unitOfWork.rollback();
     }
@@ -357,20 +333,14 @@ export function ResourceMgt() {
       return;
     }
 
-    // Nothing is saved while a rule is broken: show every error, including those a new resource has
-    // kept hidden so far, and say why nothing happened.
-    const errors = await currentErrors(unitOfWork);
-    if (errors.length > 0) {
-      revealErrors(errors);
-      return;
-    }
-
     await run(async () => {
       // Select the row before saving.  The save reloads the search list, which keeps the selected
       // row selected if it is there - which, for a newly added resource, it only is from now on.
-      setSelectedId(id);
-
-      await unitOfWork.commit();
+      const saved = await saveUnitOfWork(unitOfWork, validation, saveOptions(() => setSelectedId(id)));
+      if (!saved) {
+        // Rules are broken: every error is shown, and a notification says why nothing was saved.
+        return;
+      }
       unitOfWorkManager.releaseIfClean(id);
 
       // The save happened in the *sandbox* manager, so the shared manager still holds whatever it

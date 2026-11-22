@@ -396,6 +396,7 @@ How the Angular patterns map:
 |---|---|
 | `@Injectable({ providedIn: 'root' })` | a class, created once in `createAppServices`, in context |
 | `providers: [BusyService]` on a component | a custom hook with `useState` - `useBusy()` |
+| `SaveHandler`, a root service that shows a toast | a plain function, `saveUnitOfWork`: Mantine's `notifications` needs no service |
 | `providers: [QuinnService]` on a component | `useState(() => new QuinnConversation(...))` in that component |
 | `inject(X)` | `useServices().x`, or a specific hook |
 | `TestBed` providers with stand-ins | render the component inside a provider with stand-ins |
