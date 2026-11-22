@@ -400,6 +400,7 @@ How the Angular patterns map:
 | `inject(X)` | `useServices().x`, or a specific hook |
 | `TestBed` providers with stand-ins | render the component inside a provider with stand-ins |
 | a stateless injectable (`AppDialogService`) | plain exported functions (`openDialog`, `confirm`) |
+| the global `ErrorHandler` (`AppErrorHandler`) with `provideBrowserGlobalErrorListeners()` | `window` `error` and `unhandledrejection` listeners in `main.tsx` that call `showError`, plus an `ErrorBoundary` for errors thrown while rendering. A boundary doesn't see event handlers or async code; a failing `async` click handler is an unhandled rejection, so the listener reports it |
 
 Context is not free: when a context's value changes, every component that reads it re-renders. So
 put stable things in context (the services object never changes), and let components subscribe to

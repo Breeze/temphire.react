@@ -3,22 +3,8 @@ import { ReactNode } from 'react';
 
 import { MessageBox, MessageBoxButton } from '../dialogs/MessageBox';
 
-/** Port of Punch's `DialogResult`. */
+/** The button a message box was closed with. Port of Punch's `DialogResult`. */
 export type DialogResult = 'ok' | 'cancel' | 'yes' | 'no';
-
-/**
- * Raised instead of returning when the user dismisses a dialog.
- *
- * Punch's `IDialogManager` rejected its task with `TaskCanceledException`, and the view models were
- * written around that - `ResourceMgtViewModel.Add` catches it to abandon the add.  Keeping the same
- * shape means the ported control flow reads the same in WPF, Angular and React.
- */
-export class DialogCancelledError extends Error {
-  constructor() {
-    super('The dialog was cancelled.');
-    this.name = 'DialogCancelledError';
-  }
-}
 
 /** What a dialog's content gets: a function that closes the dialog with a result, or without. */
 export type CloseDialog<TResult> = (result?: TResult) => void;
@@ -41,13 +27,17 @@ export type CloseDialog<TResult> = (result?: TResult) => void;
  * );
  * ```
  *
- * Resolves with the result; **throws** `DialogCancelledError` when the dialog closes without one.
+ * Every dialog **returns** what the user chose: this one resolves with its result, or `undefined`
+ * when the user cancelled or closed it. Cancelling is an answer, not an error.  (The first port kept
+ * Punch's shape, which rejected the task with `TaskCanceledException`, as a thrown
+ * `DialogCancelledError`.  Every caller then needed a try/catch to tell "the user said no" from a real
+ * failure, and real failures got reported by hand instead of reaching the global handler.)
  */
 export function openDialog<TResult>(
   render: (close: CloseDialog<TResult>) => ReactNode,
   options: { title?: string; size?: string } = {},
-): Promise<TResult> {
-  return new Promise<TResult>((resolve, reject) => {
+): Promise<TResult | undefined> {
+  return new Promise<TResult | undefined>((resolve) => {
     let settled = false;
 
     const close: CloseDialog<TResult> = (result) => {
@@ -56,11 +46,7 @@ export function openDialog<TResult>(
       }
       settled = true;
       modals.close(id);
-      if (result === undefined || result === null) {
-        reject(new DialogCancelledError());
-      } else {
-        resolve(result);
-      }
+      resolve(result ?? undefined);
     };
 
     const id = modals.open({
@@ -77,28 +63,22 @@ export function openDialog<TResult>(
 }
 
 /**
- * Port of `ShowMessageAsync`.  Resolves with the chosen value; **throws** `DialogCancelledError` if
- * the user picks the cancel button or dismisses the dialog.
+ * Port of `ShowMessageAsync`.  Resolves with the value of the button the user picked.  Closing the
+ * box without one (the X, Escape, a click outside) counts as `dismissResult`: the box's cancel answer.
  */
 export async function showMessage(
   message: string,
   buttons: MessageBoxButton[],
-  options: { header?: string; cancelValue?: DialogResult | null } = {},
+  options: { header?: string; dismissResult?: DialogResult } = {},
 ): Promise<DialogResult> {
   const result = await openDialog<DialogResult>(
     (close) => <MessageBox<DialogResult> message={message} buttons={buttons} onChoose={close} />,
     { title: options.header ?? 'TempHire', size: '30rem' },
   );
-
-  const cancelValue = options.cancelValue === undefined ? 'cancel' : options.cancelValue;
-  if (cancelValue !== null && result === cancelValue) {
-    throw new DialogCancelledError();
-  }
-
-  return result;
+  return result ?? options.dismissResult ?? 'cancel';
 }
 
-/** OK / Cancel. */
+/** OK / Cancel: `'ok'` or `'cancel'`. */
 export function confirm(message: string, header = 'TempHire'): Promise<DialogResult> {
   return showMessage(
     message,
@@ -110,7 +90,7 @@ export function confirm(message: string, header = 'TempHire'): Promise<DialogRes
   );
 }
 
-/** Yes / No, where "No" is an answer rather than a cancellation. */
+/** Yes / No: `'yes'` or `'no'`. Closing the box counts as No. */
 export function confirmYesNo(message: string, header = 'TempHire'): Promise<DialogResult> {
   return showMessage(
     message,
@@ -118,14 +98,11 @@ export function confirmYesNo(message: string, header = 'TempHire'): Promise<Dial
       { label: 'Yes', value: 'yes', severity: 'danger' },
       { label: 'No', value: 'no', severity: 'secondary' },
     ],
-    { header, cancelValue: 'no' },
+    { header, dismissResult: 'no' },
   );
 }
 
-/**
- * Yes / No / Cancel - used when leaving a screen with unsaved changes.  Throws
- * `DialogCancelledError` for Cancel, matching `StaffingResourceDetailViewModel.CanClose`.
- */
+/** Yes / No / Cancel, used when leaving a screen with unsaved changes. Closing the box counts as Cancel. */
 export function confirmYesNoCancel(message: string, header = 'TempHire'): Promise<DialogResult> {
   return showMessage(
     message,
