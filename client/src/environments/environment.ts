@@ -17,8 +17,12 @@ const server = development ? 'http://localhost:5100' : '';
 
 export const environment = {
   production: !development,
-  /** Root of the Breeze controller - see `BreezeController`'s `[Route("api/breeze/[action]")]`. */
-  breezeApiRoot: `${server}/api/breeze`,
+  /** The Breeze model's metadata, loaded at sign-in - see `ModelController`. */
+  modelApiRoot: `${server}/api/model`,
+  /** The lookups, loaded at sign-in for every unit of work - see `LookupsController`. */
+  lookupsApiRoot: `${server}/api/lookups`,
+  /** The Resource Management workspace's queries and saves - see `ResourceMgtController`. */
+  resourceMgtApiRoot: `${server}/api/resourcemgt`,
   /** Root of the validation controller: the validation metadata, see `ValidationController`. */
   validationApiRoot: `${server}/api/validation`,
   /** Root of the account controller: who the signed-in user is. */
