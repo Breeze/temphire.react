@@ -28,9 +28,11 @@ describe('ResourceSearch', () => {
       subscribe: () => () => undefined,
       saves: () => 0,
       get: () => ({
-        search: async (text: string) => {
-          searches.push(text);
-          return rows;
+        search: {
+          simple: async (text: string) => {
+            searches.push(text);
+            return rows;
+          },
         },
       }),
     };
