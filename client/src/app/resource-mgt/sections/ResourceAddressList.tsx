@@ -1,4 +1,4 @@
-import { ValidationForm, useEntityStoreValidation } from '@ideablade/validation/react';
+import { ValidationForm, useEntityStoreValidation, useShownErrors } from '@ideablade/validation/react';
 import { Alert, Button, Radio } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
@@ -39,8 +39,13 @@ export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: 
    * the route's validation service shares it.
    */
   const validation = useEntityStoreValidation();
-  const ruleErrors = (validation?.validationErrors ?? []).filter(
-    (error) => error.model === staffingResource && error.id === 'ADDRESS_REQUIRED',
+  // On a new resource, the rule is broken from the start: it shows once the user breaks it again
+  // (deletes the last address) or tries to save.  See `ErrorVisibility` in `ResourceMgt`.
+  const ruleErrors = useShownErrors(
+    staffingResource,
+    (validation?.validationErrors ?? []).filter(
+      (error) => error.model === staffingResource && error.id === 'ADDRESS_REQUIRED',
+    ),
   );
 
   /**

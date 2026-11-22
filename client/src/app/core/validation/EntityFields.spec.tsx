@@ -1,11 +1,20 @@
-import { ModelValidationMetadataMap, createValidationService } from '@ideablade/validation';
+import {
+  ErrorVisibility,
+  ModelValidationMetadataMap,
+  createValidationService,
+} from '@ideablade/validation';
 import {
   breezeEntityStore,
+  breezeIsNew,
   breezeModelType,
   breezeValidator,
   installBreezeValidators,
 } from '@ideablade/validation/breeze';
-import { ValidationForm, ValidationProvider } from '@ideablade/validation/react';
+import {
+  ErrorVisibilityProvider,
+  ValidationForm,
+  ValidationProvider,
+} from '@ideablade/validation/react';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { Entity } from 'breeze-client';
 
@@ -41,7 +50,8 @@ describe('entity fields', () => {
     return { manager, service };
   }
 
-  function render() {
+  /** With `visibility`, as on the resource management screen: a new entity's first errors wait. */
+  function render(visibility?: ErrorVisibility) {
     const { manager, service } = setUp();
     const address = manager.createEntity('Address', {
       id: crypto.randomUUID(),
@@ -49,12 +59,19 @@ describe('entity fields', () => {
       stateId: '00000000-0000-0000-0000-000000000000',
     }) as Entity & { city: string; stateId: string };
 
+    const form = (
+      <ValidationForm model={address}>
+        <EntityTextInput entity={address} property="city" aria-label="City" />
+        <EntitySelect entity={address} property="stateId" aria-label="State" data={[]} />
+      </ValidationForm>
+    );
     renderWithMantine(
       <ValidationProvider service={service}>
-        <ValidationForm model={address}>
-          <EntityTextInput entity={address} property="city" aria-label="City" />
-          <EntitySelect entity={address} property="stateId" aria-label="State" data={[]} />
-        </ValidationForm>
+        {visibility ? (
+          <ErrorVisibilityProvider visibility={visibility}>{form}</ErrorVisibilityProvider>
+        ) : (
+          form
+        )}
       </ValidationProvider>,
     );
     return {
@@ -130,5 +147,20 @@ describe('entity fields', () => {
     fireEvent.change(input, { target: { value: '' } });
     expect(rate.amount).toBeNull();
     expect(input).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it("hides a new entity's first errors until the user leaves the field, or tries to save", () => {
+    const visibility = new ErrorVisibility({ isNew: breezeIsNew });
+    const { city, state } = render(visibility);
+    expect(city).not.toHaveAttribute('aria-invalid');
+    expect(city.title).toBe('');
+
+    fireEvent.blur(city);
+    expect(city.title).toBe("'City' is required");
+    expect(city).toHaveAttribute('aria-invalid', 'true');
+    expect(state.title).toBe('');
+
+    act(() => visibility.revealAll());
+    expect(state.title).toBe("'State' is required");
   });
 });

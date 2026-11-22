@@ -1,5 +1,13 @@
-import { ValidationProvider, useObservable, useValidationScope } from '@ideablade/validation/react';
+import { ErrorVisibility } from '@ideablade/validation';
+import { breezeIsNew } from '@ideablade/validation/breeze';
+import {
+  ErrorVisibilityProvider,
+  ValidationProvider,
+  useObservable,
+  useValidationScope,
+} from '@ideablade/validation/react';
 import { Loader } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import {
   IconDeviceFloppy,
   IconPencil,
@@ -101,6 +109,33 @@ export function ResourceMgt() {
    */
   const validationResult = useObservable(() => validation.validateEntityStore(), undefined, [validation]);
 
+  /**
+   * Which errors the screen shows, so a new resource is not all red at once: a new entity's first
+   * errors wait until the user has touched the field, caused the error, or tried to save.  Only
+   * added entities count as new.  The fields report to it themselves; the continuous validation
+   * above gives the resource's own rules (at least one address, one phone number) a baseline too.
+   * (Angular: `provideErrorVisibility({ isNew: breezeIsNew, watchEntityStore: true })`.)
+   */
+  const [errorVisibility] = useState(() => new ErrorVisibility({ isNew: breezeIsNew }));
+  useEffect(() => {
+    if (validationResult) {
+      errorVisibility.observeEntities(validationResult);
+    }
+  }, [errorVisibility, validationResult]);
+
+  /** Shows every error, and says why nothing was saved: Save stays enabled while rules are broken. */
+  function revealErrors(count: number): void {
+    errorVisibility.revealAll();
+    notifications.show({
+      color: 'yellow',
+      title: 'Not saved',
+      message:
+        count === 1
+          ? 'One problem needs fixing. It is highlighted.'
+          : `${count} problems need fixing. They are highlighted.`,
+    });
+  }
+
   const staffingResourceId = staffingResource?.id ?? null;
   const isReadOnly = editMode === 'view';
   const hasResource = !!staffingResource;
@@ -117,11 +152,11 @@ export function ResourceMgt() {
     !!staffingResource &&
     !!unitOfWork &&
     unitOfWork.hasChanges() &&
-    // The fields with errors are highlighted; Save waits until they are fixed, and until the async
-    // rules, if any, have answered.
+    // Save waits until the async rules, if any, have answered.  It stays enabled while there are
+    // errors: a new resource's errors are hidden until the user has seen the field, so a disabled
+    // Save would give no reason.  Clicking it shows them all instead (`save()`).
     !!validationResult &&
     !validationResult.pending &&
-    validationResult.validationErrors.length === 0 &&
     !staffingResource.entityAspect.entityState.isDeleted();
   const canRefresh = !!staffingResource && !staffingResource.entityAspect.entityState.isAdded();
 
@@ -141,6 +176,8 @@ export function ResourceMgt() {
   }
 
   function attach(uow: ResourceMgtUnitOfWork, resource: StaffingResource, mode: EditMode): void {
+    // Another resource, or the same one reloaded after a save or in another mode: start over.
+    errorVisibility.reset();
     // Four state updates, one re-render: React batches updates made together.
     setUnitOfWork(uow);
     setStaffingResource(resource);
@@ -148,6 +185,7 @@ export function ResourceMgt() {
   }
 
   function clearDetail(): void {
+    errorVisibility.reset();
     setStaffingResource(null);
     setUnitOfWork(null);
     setEditMode('view');
@@ -186,6 +224,12 @@ export function ResourceMgt() {
     );
 
     if (answer === 'yes') {
+      const errors = validationResult?.validationErrors.length ?? 0;
+      if (errors > 0) {
+        // As with Save: show every error and keep the user here, with their edits.
+        revealErrors(errors);
+        throw new DialogCancelledError();
+      }
       try {
         await busy.run(unitOfWork.commit());
         unitOfWorkManager.get(SHARED_UNIT_OF_WORK_KEY).clear();
@@ -290,6 +334,14 @@ export function ResourceMgt() {
   async function save(): Promise<void> {
     const id = staffingResourceId;
     if (!id || !unitOfWork) {
+      return;
+    }
+
+    // Nothing is saved while a rule is broken: show every error, including those a new resource has
+    // kept hidden so far, and say why nothing happened.
+    const errors = validationResult?.validationErrors.length ?? 0;
+    if (errors > 0) {
+      revealErrors(errors);
       return;
     }
 
@@ -560,11 +612,13 @@ export function ResourceMgt() {
       <section className="resource-mgt__detail">
         {staffingResource && unitOfWork ? (
           <ValidationProvider service={validation}>
-            <ResourceDetail
-              staffingResource={staffingResource}
-              readOnly={isReadOnly}
-              unitOfWork={unitOfWork}
-            />
+            <ErrorVisibilityProvider visibility={errorVisibility}>
+              <ResourceDetail
+                staffingResource={staffingResource}
+                readOnly={isReadOnly}
+                unitOfWork={unitOfWork}
+              />
+            </ErrorVisibilityProvider>
           </ValidationProvider>
         ) : (
           <p className="resource-mgt__empty">
