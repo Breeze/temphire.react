@@ -1,4 +1,4 @@
-import { ValidationForm, useEntityStoreValidation } from '@ideablade/validation/react';
+import { ValidationForm, useEntityStoreValidation, useShownErrors } from '@ideablade/validation/react';
 import { Alert, Button, Radio } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
@@ -7,7 +7,6 @@ import { useUnitOfWork } from '../../core/hooks/use-unit-of-work';
 import { DialogCancelledError, openDialog } from '../../core/services/dialog.service';
 import { showError } from '../../core/services/error-handler';
 import { EntityTextInput } from '../../core/validation/EntityFields';
-import { useShownErrors } from '../../core/validation/use-shown-errors';
 import { ItemSelector } from '../ItemSelector';
 import type { SectionProps } from '../ResourceDetail';
 import './ResourcePhoneList.css';
