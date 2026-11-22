@@ -198,7 +198,7 @@ how usage is counted, and how to change the budgets or the prices - in detail.
 
 ## Validation
 
-> **Preview.**  Validation uses a preview of IdeaBlade Validation (`0.1.0-preview.9`), which
+> **Preview.**  Validation uses a preview of IdeaBlade Validation (`0.1.0-preview.10`), which
 > isn't published to NuGet or npm yet: the builds are in `packages/` and `server/packages/`, where
 > `client/package.json` and the server's `nuget.config` find them (`packages/README.md` explains
 > how to update them).  The
