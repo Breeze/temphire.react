@@ -56,3 +56,17 @@
   padding: 1.25rem 1.4rem 1.5rem;
   background: #ffffff;
 }
+
+/* A tab with errors to show: a red count after its label, on the active tab too. */
+.detail__tab-errors {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: 0.45rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #ffffff;
+  background: var(--mantine-color-red-6);
+}
