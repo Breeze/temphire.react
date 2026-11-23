@@ -59,10 +59,11 @@ export class EventAggregator {
   /** Subscribes to the saves.  Every unit-of-work manager drops its shared cache on one. */
   readonly onSaved = this.saves.subscribe;
 
-  /** The latest sign-out, or `null`.  Port of Punch's `LoggedOutMessage`. */
-  readonly lastLogout = this.logouts.latest;
-
-  /** Subscribes to sign-outs.  Every unit-of-work manager forgets its units of work on one. */
+  /**
+   * Subscribes to sign-outs - port of Punch's `LoggedOutMessage`.  Every unit-of-work manager
+   * forgets its units of work on one.  Nothing reads the latest sign-out, so unlike saves there is
+   * no `lastLogout`.
+   */
   readonly onLoggedOut = this.logouts.subscribe;
 
   /** Called by a unit of work after every successful save. */
