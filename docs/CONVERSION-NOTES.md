@@ -59,7 +59,8 @@ unchanged apart from a first line naming where it came from.
 | `core/services/auth.guard.ts` | `core/services/auth.guard.ts` | Route loaders |
 | `core/services/entity-manager-provider.ts` | `core/services/entity-manager-provider.ts` | `@Injectable` and `HttpClient` removed |
 | `core/services/unit-of-work.ts` | `core/services/unit-of-work.ts` | The `changes` signal becomes a version number and `subscribe` (`ChangeNotifier`) |
-| `core/services/unit-of-work-manager.ts` | `core/services/unit-of-work-manager.ts` | `UnitOfWorkManager<T>` and `UnitOfWorkManagers`, as in Angular; the app-wide `saves` signal becomes a counter on `UnitOfWorkManagers`, read with `useSaveCount` |
+| `core/services/unit-of-work-manager.ts` | `core/services/unit-of-work-manager.ts` | `UnitOfWorkManager<T>`, as in Angular: it subscribes to the save and sign-out events (`onSaved`, `onLoggedOut`) where Angular reads their signals in an `effect` |
+| `core/services/event-aggregator.ts` | `core/services/event-aggregator.ts` | `EventAggregator`, as in Angular.  An event is a subscription plus its latest occurrence (`onSaved` / `lastSave`) rather than a signal; a component reads the latest with `useLastSave` (`useSyncExternalStore`) |
 | `core/services/resource-mgt-unit-of-work-manager.ts` | `core/services/resource-mgt-unit-of-work-manager.ts` | Same; created in `app-services.tsx` and passed the registry |
 | `core/services/resource-mgt-unit-of-work.ts` | same | Copied |
 | `core/services/repository.ts` | same | Copied |

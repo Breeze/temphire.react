@@ -8,7 +8,7 @@ import { AuthService, AuthState } from './auth.service';
 import { EntityManagerProvider } from './entity-manager-provider';
 import { SaveHandler } from './save-handler';
 import { ResourceMgtUnitOfWorkManager } from './resource-mgt-unit-of-work-manager';
-import { UnitOfWorkManagers } from './unit-of-work-manager';
+import { EventAggregator } from './event-aggregator';
 
 /**
  * The app's long-lived services, and how components get at them.
@@ -29,14 +29,14 @@ import { UnitOfWorkManagers } from './unit-of-work-manager';
  */
 export interface AppServices {
   readonly emProvider: EntityManagerProvider;
-  /** Every workspace's unit-of-work managers, for what concerns them all: saves, sign-out. */
-  readonly unitOfWorkManagers: UnitOfWorkManagers;
+  /** The app-wide events: saves, sign-out (Punch's `IEventAggregator`). */
+  readonly events: EventAggregator;
   /** The Resource Management workspace's units of work. */
   readonly resourceMgtUnitOfWorkManager: ResourceMgtUnitOfWorkManager;
   readonly auth: AuthService;
   /** The app's validation service; `main.tsx` provides it to the validation hooks. */
   readonly validation: ValidationService;
-  /** How every workspace saves: validates first, and drops the shared cache after a save. */
+  /** How every workspace saves: validates the data when Save is clicked. */
   readonly saveHandler: SaveHandler;
 }
 
@@ -66,16 +66,16 @@ export function createAppServices(): AppServices {
     ruleSources: [breezeRuleSource(() => emProvider.metadataStore)],
   });
   const emProvider = new EntityManagerProvider(validation);
-  const unitOfWorkManagers = new UnitOfWorkManagers();
-  const resourceMgtUnitOfWorkManager = new ResourceMgtUnitOfWorkManager(emProvider, unitOfWorkManagers);
-  const auth = new AuthService(emProvider, unitOfWorkManagers);
-  const saveHandler = new SaveHandler(unitOfWorkManagers);
+  const events = new EventAggregator();
+  const resourceMgtUnitOfWorkManager = new ResourceMgtUnitOfWorkManager(emProvider, events);
+  const auth = new AuthService(emProvider, events);
+  const saveHandler = new SaveHandler();
 
   // Every request goes through `apiFetch`, which gets its token from the session - the counterpart
   // of `provideHttpClient(withInterceptors([authInterceptor]))`.
   setTokenSource(auth);
 
-  return { emProvider, unitOfWorkManagers, resourceMgtUnitOfWorkManager, auth, validation, saveHandler };
+  return { emProvider, events, resourceMgtUnitOfWorkManager, auth, validation, saveHandler };
 }
 
 const AppServicesContext = createContext<AppServices | null>(null);

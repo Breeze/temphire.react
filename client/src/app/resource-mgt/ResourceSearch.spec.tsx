@@ -24,7 +24,7 @@ describe('ResourceSearch', () => {
 
   function setUp() {
     searches = [];
-    const unitOfWorkManagers = { subscribe: () => () => undefined, saves: () => 0 };
+    const events = { onSaved: () => () => undefined, lastSave: () => null };
     const resourceMgtUnitOfWorkManager = {
       get: () => ({
         search: {
@@ -37,7 +37,7 @@ describe('ResourceSearch', () => {
     };
     renderWithMantine(
       <AppServicesProvider
-        services={{ unitOfWorkManagers, resourceMgtUnitOfWorkManager } as unknown as AppServices}
+        services={{ events, resourceMgtUnitOfWorkManager } as unknown as AppServices}
       >
         <ResourceSearch selectedId="id-1" onSelectionChange={() => undefined} />
       </AppServicesProvider>,

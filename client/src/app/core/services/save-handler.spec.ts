@@ -3,16 +3,6 @@ import { notifications } from '@mantine/notifications';
 import { vi } from 'vitest';
 
 import { SaveHandler } from './save-handler';
-import type { EntityManagerProvider } from './entity-manager-provider';
-import type { UnitOfWork } from './unit-of-work';
-import { SHARED_UNIT_OF_WORK_KEY, UnitOfWorkManager, UnitOfWorkManagers } from './unit-of-work-manager';
-
-/** A workspace's manager; the tests never create its units of work. */
-class TestManager extends UnitOfWorkManager<UnitOfWork> {
-  protected override newUnitOfWork(): UnitOfWork {
-    throw new Error('Not used by these tests.');
-  }
-}
 
 /**
  * Regression test: Save must decide on the data as it is when clicked.  Port of the Angular
@@ -32,7 +22,7 @@ describe('SaveHandler', () => {
   beforeEach(() => vi.spyOn(notifications, 'show').mockImplementation(() => ''));
   afterEach(() => vi.restoreAllMocks());
 
-  function setUp(order: Order, options: { slowRule?: boolean; noShared?: boolean } = {}) {
+  function setUp(order: Order, options: { slowRule?: boolean } = {}) {
     const listeners = new Set<() => void>();
     const entityStore = createEntityStore({
       entities: () => [{ entityType: 'Order', entity: order }],
@@ -62,20 +52,12 @@ describe('SaveHandler', () => {
         return [];
       }),
     };
-    // A workspace's manager, registered with `UnitOfWorkManagers` like any other, holding the shared
-    // unit of work: its cache is dropped after every successful save.
-    const managers = new UnitOfWorkManagers();
-    const manager = new TestManager({} as EntityManagerProvider, managers);
-    const shared = { clear: vi.fn(() => calls.push('clear shared')) };
-    if (!options.noShared) {
-      manager.add(SHARED_UNIT_OF_WORK_KEY, shared as unknown as UnitOfWork);
-    }
-    const handler = new SaveHandler(managers);
+    const handler = new SaveHandler();
     const edit = (change: Partial<Order>) => {
       Object.assign(order, change);
       listeners.forEach((notify) => notify());
     };
-    return { handler, validation, unitOfWork, calls, edit, shared, manager };
+    return { handler, validation, unitOfWork, calls, edit };
   }
 
   it('decides on an edit made just before, which the continuous validation has not seen yet', async () => {
@@ -124,38 +106,8 @@ describe('SaveHandler', () => {
     const { handler, validation, unitOfWork, calls } = setUp({ name: 'Ann', code: 'free' }, { slowRule: true });
     const saved = await handler.save(unitOfWork, validation, { beforeCommit: () => calls.push('beforeCommit') });
     expect(saved).toBe(true);
-    expect(calls).toEqual(['beforeCommit', 'commit', 'clear shared']);
+    expect(calls).toEqual(['beforeCommit', 'commit']);
     expect(notifications.show).not.toHaveBeenCalled();
-  });
-
-  it('drops the shared cache only after a successful save', async () => {
-    // Broken rules: nothing saved, nothing dropped.
-    const invalid = setUp({ name: '', code: '' });
-    expect(await invalid.handler.save(invalid.unitOfWork, invalid.validation)).toBe(false);
-    expect(invalid.shared.clear).not.toHaveBeenCalled();
-
-    // A failed commit: nothing dropped either.
-    const failing = setUp({ name: 'Ann', code: '' });
-    failing.unitOfWork.commit.mockRejectedValueOnce(new Error('Server says no'));
-    await expect(failing.handler.save(failing.unitOfWork, failing.validation)).rejects.toThrow();
-    expect(failing.shared.clear).not.toHaveBeenCalled();
-  });
-
-  it('commits without validating, such as a deletion, and drops the shared cache too', async () => {
-    const { handler, unitOfWork, calls } = setUp({ name: '', code: '' }); // breaks a rule: deletable anyway
-    await handler.commit(unitOfWork);
-    expect(calls).toEqual(['commit', 'clear shared']);
-  });
-
-  it('leaves the shared cache alone when there is none yet, or when it is the one saved', async () => {
-    const none = setUp({ name: 'Ann', code: '' }, { noShared: true });
-    await none.handler.commit(none.unitOfWork);
-    expect(none.manager.has(SHARED_UNIT_OF_WORK_KEY)).toBe(false);
-
-    const self = setUp({ name: 'Ann', code: '' });
-    self.manager.add(SHARED_UNIT_OF_WORK_KEY, self.unitOfWork as unknown as UnitOfWork);
-    await self.handler.commit(self.unitOfWork);
-    expect(self.calls).toEqual(['commit']);
   });
 
   it('lets a failed commit throw, for the workspace to report', async () => {

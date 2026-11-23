@@ -1,5 +1,5 @@
-import { ChangeNotifier } from './change-notifier';
 import { EntityManagerProvider } from './entity-manager-provider';
+import { EventAggregator } from './event-aggregator';
 import { UnitOfWork } from './unit-of-work';
 
 /** The key used for the single shared, view-only unit of work.  DevForce used `Guid.Empty`. */
@@ -23,8 +23,11 @@ export const SHARED_UNIT_OF_WORK_KEY = '00000000-0000-0000-0000-000000000000';
  * can still return the old one, which is harmless.  A `FinalizationRegistry` removes the keys of
  * collected units of work.
  *
- * What concerns every workspace's managers together - the saves, sign-out - is in
- * `UnitOfWorkManagers`, which each manager registers with.
+ * **Saves and sign-out come as events** (`EventAggregator`), as `SavedMessage` and
+ * `LoggedOutMessage` did in Punch.  A unit of work announces its saves there, and every manager -
+ * every workspace's - subscribes when it is created: after a save it drops its shared cache, and at
+ * sign-out it forgets every unit of work.  Nobody calls a manager for either.  A manager lives as
+ * long as the app, so it never unsubscribes.  (Angular: an `effect` reading the event's signal.)
  */
 export abstract class UnitOfWorkManager<T extends UnitOfWork> {
   private readonly cache = new Map<string, WeakRef<T>>();
@@ -38,9 +41,12 @@ export abstract class UnitOfWorkManager<T extends UnitOfWork> {
 
   constructor(
     protected readonly emProvider: EntityManagerProvider,
-    private readonly managers: UnitOfWorkManagers,
+    private readonly events: EventAggregator,
   ) {
-    managers.register(this);
+    // `IHandle<SavedMessage>` and `IHandle<LoggedOutMessage>`.  Listeners run synchronously, as
+    // soon as the save has committed: before anything reloads.
+    events.onSaved((save) => this.dropSharedCache(save.unitOfWork.deref()));
+    events.onLoggedOut(() => this.forgetAll());
   }
 
   /**
@@ -64,10 +70,11 @@ export abstract class UnitOfWorkManager<T extends UnitOfWork> {
 
   /**
    * Creates a unit of work without keeping it under a key - port of `IUnitOfWorkManager.Create`.
-   * See `add`.
+   * See `add`.  Its saves are announced as events.
    */
   create(): T {
-    return this.newUnitOfWork(() => this.managers.saved());
+    const unitOfWork = this.newUnitOfWork(() => this.events.saved(unitOfWork));
+    return unitOfWork;
   }
 
   /**
@@ -92,64 +99,27 @@ export abstract class UnitOfWorkManager<T extends UnitOfWork> {
   }
 
   /**
-   * Drops the shared unit of work's cache, unless there is none (yet, or any more) or it is `saved`,
-   * the one just saved.  See `SaveHandler`.
+   * After a save: drops the shared unit of work's cache, unless there is none (yet, or any more) or
+   * it is `saved`, the one just saved.  Any workspace's save can change what this one has loaded,
+   * and it happened in a sandbox, so the shared unit of work still holds whatever it last loaded,
+   * including children the save just deleted.  A Breeze query merge never detaches cached entities
+   * the server omitted, so re-querying would not remove them; the cache has to be dropped and
+   * re-seeded.
    */
-  dropSharedCache(saved: object): void {
+  protected dropSharedCache(saved: object | undefined): void {
     const shared = this.find(SHARED_UNIT_OF_WORK_KEY);
     if (shared && shared !== saved) {
       shared.clear();
     }
   }
 
-  /** Forgets every unit of work - used on logout. */
-  clear(): void {
+  /** At sign-out: forgets every unit of work. */
+  protected forgetAll(): void {
     this.cache.clear();
   }
 
   /** The unit of work kept under `key`, if it hasn't been collected. */
   private find(key: string): T | undefined {
     return this.cache.get(key)?.deref();
-  }
-}
-
-/**
- * Every workspace's unit-of-work manager, for what concerns them all: the count of saves (Punch's
- * `SavedMessage` was app-wide too), dropping every shared cache after a save, and forgetting every
- * unit of work at sign-out.  A manager registers itself when it is created.
- */
-export class UnitOfWorkManagers extends ChangeNotifier {
-  private readonly managers = new Set<UnitOfWorkManager<UnitOfWork>>();
-  private saveCount = 0;
-
-  /**
-   * How many saves have succeeded, in any unit of work of any workspace - port of Punch's
-   * `SavedMessage`, which the search list handled (`IHandle<SavedMessage>`) to re-run its query.
-   * `ResourceSearch` reads it with `useSaveCount` and re-runs its search when the number changes.
-   * (Angular: a signal read in the search's `resource()` params.)
-   */
-  readonly saves = (): number => this.saveCount;
-
-  register(manager: UnitOfWorkManager<UnitOfWork>): void {
-    this.managers.add(manager);
-  }
-
-  /** Called by every unit of work after a successful save. */
-  saved(): void {
-    this.saveCount++;
-    this.notify();
-  }
-
-  /**
-   * After a save: drops every workspace's shared cache but `saved`'s, since a save can change what
-   * any of them has loaded.
-   */
-  dropSharedCaches(saved: object): void {
-    this.managers.forEach((manager) => manager.dropSharedCache(saved));
-  }
-
-  /** Forgets every unit of work of every workspace - used on logout. */
-  clear(): void {
-    this.managers.forEach((manager) => manager.clear());
   }
 }

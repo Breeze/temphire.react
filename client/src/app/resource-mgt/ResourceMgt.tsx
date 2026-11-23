@@ -235,7 +235,8 @@ export function ResourceMgt() {
         // As with Save: every error is shown; keep the user here, with their edits.
         return false;
       }
-      // The handler has dropped the shared cache, so the next view-mode load re-reads the saved graph.
+      // The save dropped the shared cache (the manager handles the saved event), so the next
+      // view-mode load re-reads the saved graph.
     } else {
       unitOfWork.rollback();
     }
@@ -324,8 +325,9 @@ export function ResourceMgt() {
         // Rules are broken: every error is shown, and a notification says why nothing was saved.
         return;
       }
-      // The handler has dropped the shared cache, so the view-mode load below re-reads the saved graph.
-      // The sandbox needs no releasing: once the screen moves on, nothing holds it.
+      // The save dropped the shared cache (the manager handles the saved event), so the view-mode
+      // load below re-reads the saved graph.  The sandbox needs no releasing: once the screen moves
+      // on, nothing holds it.
       await loadDetail(id, 'view');
     });
   }
@@ -365,9 +367,9 @@ export function ResourceMgt() {
     await run(async () => {
       try {
         resource.delete();
-        // Not validated: a record that breaks a rule can still be deleted.  The handler drops the
-        // shared cache, so the deleted graph goes with it.
-        await saveHandler.commit(unitOfWork);
+        // Not validated: a record that breaks a rule can still be deleted.  Like every save, it drops
+        // the shared cache, so the deleted graph goes with it.
+        await unitOfWork.commit();
       } catch (error) {
         unitOfWork.rollback();
         throw error;

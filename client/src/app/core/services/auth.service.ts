@@ -4,7 +4,7 @@ import { ChangeNotifier } from './change-notifier';
 import { EntityManagerProvider } from './entity-manager-provider';
 import { challengeFor, randomString } from './pkce';
 import { Roles } from './roles';
-import { UnitOfWorkManagers } from './unit-of-work-manager';
+import { EventAggregator } from './event-aggregator';
 
 /** `GET api/account/me`: who the access token belongs to. */
 interface UserInfo {
@@ -99,7 +99,7 @@ export class AuthService extends ChangeNotifier implements TokenSource {
 
   constructor(
     private readonly emProvider: EntityManagerProvider,
-    private readonly unitOfWorkManagers: UnitOfWorkManagers,
+    private readonly events: EventAggregator,
   ) {
     super();
   }
@@ -240,7 +240,7 @@ export class AuthService extends ChangeNotifier implements TokenSource {
     sessionStorage.removeItem(TOKENS_KEY);
     this.tokens = null;
     this.user = null;
-    this.unitOfWorkManagers.clear();
+    this.events.loggedOut();
     this.emProvider.reset();
     this.update();
   }

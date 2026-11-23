@@ -2,9 +2,10 @@ import { Button, Input, Loader, ScrollArea, Table, TextInput } from '@mantine/co
 import { Ref, useEffect, useEffectEvent, useImperativeHandle, useRef, useState } from 'react';
 
 import { StaffingResourceListItem } from '../core/projections/staffing-resource-list-item';
-import { useSaveCount } from '../core/hooks/use-unit-of-work';
+import { useLastSave } from '../core/hooks/use-last-save';
 import { useServices } from '../core/services/app-services';
 import { describe } from '../core/services/error-handler';
+import type { SavedEvent } from '../core/services/event-aggregator';
 import { SHARED_UNIT_OF_WORK_KEY } from '../core/services/unit-of-work-manager';
 import './ResourceSearch.css';
 
@@ -42,32 +43,30 @@ interface ResourceSearchProps {
  * ignores a response that arrives after newer params have taken over.
  */
 export function ResourceSearch({ selectedId, onSelectionChange, ref }: ResourceSearchProps) {
-  const { resourceMgtUnitOfWorkManager: unitOfWorkManager, unitOfWorkManagers } = useServices();
-  const saves = useSaveCount(unitOfWorkManagers);
+  const { resourceMgtUnitOfWorkManager: unitOfWorkManager, events } = useServices();
+  /** The latest save anywhere - port of `IHandle<SavedMessage>`.  A new one means "load". */
+  const lastSave = useLastSave(events);
 
   /** What is in the box, as the user types. */
   const [text, setText] = useState('');
-  /** The search that was run - with a counter, so running the same text again reloads. */
+  /** The search that was run - a new object each time, so running the same text again reloads. */
   const [query, setQuery] = useState({ text: '', run: 0 });
 
   /**
-   * The search to run: the query, and how many saves there have been.  A new key means "load".
-   */
-  const key = `${query.run}:${saves}`;
-
-  /**
-   * The last result: which search it answered, its rows and its error.  "Loading" is not kept as
-   * state of its own but *derived*: the pane is loading while the result is for an older key.
-   * Deriving rather than syncing state is a React habit worth having - the effect below then only
-   * sets state when the answer arrives, never at its start.
+   * The last result: which search it answered (the query and the latest save then), its rows and
+   * its error.  "Loading" is not kept as state of its own but *derived*: the pane is loading while
+   * the result is for an older search or an older save.  Deriving rather than syncing state is a
+   * React habit worth having - the effect below then only sets state when the answer arrives,
+   * never at its start.
    */
   const [result, setResult] = useState<{
-    key: string | null;
+    query: typeof query | null;
+    lastSave: SavedEvent | null;
     rows: StaffingResourceListItem[];
     error: unknown;
-  }>({ key: null, rows: [], error: null });
+  }>({ query: null, lastSave: null, rows: [], error: null });
 
-  const loading = result.key !== key;
+  const loading = result.query !== query || result.lastSave !== lastSave;
   const rows = result.rows;
   const error = result.error;
 
@@ -110,13 +109,13 @@ export function ResourceSearch({ selectedId, onSelectionChange, ref }: ResourceS
         (results) => {
           if (current) {
             // The previous rows stay on screen until these arrive - the Angular `linkedSignal`.
-            setResult({ key, rows: results, error: null });
+            setResult({ query, lastSave, rows: results, error: null });
             selectIfMissing(results);
           }
         },
         (failure: unknown) => {
           if (current) {
-            setResult((previous) => ({ key, rows: previous.rows, error: failure }));
+            setResult((previous) => ({ query, lastSave, rows: previous.rows, error: failure }));
           }
         },
       );
@@ -125,7 +124,7 @@ export function ResourceSearch({ selectedId, onSelectionChange, ref }: ResourceS
     return () => {
       current = false;
     };
-  }, [key, query.text, unitOfWorkManager]);
+  }, [query, lastSave, unitOfWorkManager]);
 
   const box = useRef<HTMLInputElement>(null);
 

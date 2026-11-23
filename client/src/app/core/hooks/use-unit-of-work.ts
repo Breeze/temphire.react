@@ -1,7 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
 import { UnitOfWork } from '../services/unit-of-work';
-import { UnitOfWorkManagers } from '../services/unit-of-work-manager';
 
 const noSubscription = () => () => {};
 const noVersion = () => 0;
@@ -26,9 +25,4 @@ export function useUnitOfWork(unitOfWork: UnitOfWork | null | undefined): number
     unitOfWork?.subscribe ?? noSubscription,
     unitOfWork?.version ?? noVersion,
   );
-}
-
-/** How many saves have succeeded, in any workspace; re-renders on each one.  See `UnitOfWorkManagers.saves`. */
-export function useSaveCount(managers: UnitOfWorkManagers): number {
-  return useSyncExternalStore(managers.subscribe, managers.saves);
 }
