@@ -1,6 +1,7 @@
 /**
  * The base of every service that holds state the UI shows: the session (`AuthService`), a unit of
- * work's entities (`UnitOfWork`), the save counter (`UnitOfWorkManager`), Quinn's conversation.
+ * work's entities (`UnitOfWork`), Quinn's conversation.  (Events, which happen rather than hold
+ * state, are `EventAggregator`'s.)
  *
  * New in the React port; it takes the place of Angular's signals in those services.
  *

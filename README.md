@@ -235,9 +235,9 @@ On the client:
   every workspace uses: it validates the unit of work again when Save is clicked
   (`validateEntityStoreOneTime`), since the continuous result catches up with an edit a moment
   later and a Save clicked right after an edit would otherwise miss it.  Nothing is saved while
-  any rule is broken, async ones included: the handler shows every error and says why.  After a
-  save (or a deletion, `commit`) it drops the shared unit of work's cache, so the read-only views
-  re-read what was saved.
+  any rule is broken, async ones included: the handler shows every error and says why.  After
+  every save (a deletion too), each unit-of-work manager drops its shared cache, on the saved event
+  (`EventAggregator`), so the read-only views re-read what was saved.
 - **Entity editors** wrap each card or row in `<ValidationForm model={entity}>`, which validates the
   whole entity; each `Entity*` input (`core/validation/EntityFields.tsx`) shows the errors to show
   about its property (`useFieldValidation`), and reports the user's edits and leaving the field

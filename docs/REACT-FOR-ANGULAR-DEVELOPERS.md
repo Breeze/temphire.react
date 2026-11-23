@@ -373,11 +373,11 @@ TempHire creates its long-lived services once and puts them in context:
 // app-services.tsx
 export function createAppServices(): AppServices {
   const emProvider = new EntityManagerProvider(validation);
-  const unitOfWorkManagers = new UnitOfWorkManagers();
-  const resourceMgtUnitOfWorkManager = new ResourceMgtUnitOfWorkManager(emProvider, unitOfWorkManagers);
-  const auth = new AuthService(emProvider, unitOfWorkManagers);
+  const events = new EventAggregator();
+  const resourceMgtUnitOfWorkManager = new ResourceMgtUnitOfWorkManager(emProvider, events);
+  const auth = new AuthService(emProvider, events);
   setTokenSource(auth);
-  return { emProvider, unitOfWorkManagers, resourceMgtUnitOfWorkManager, auth /* , ... */ };
+  return { emProvider, events, resourceMgtUnitOfWorkManager, auth /* , ... */ };
 }
 
 export function useServices(): AppServices { return useContext(AppServicesContext)!; }
