@@ -5,7 +5,7 @@ import { environment } from '../../../environments/environment';
 import { apiFetch, setTokenSource } from './api-fetch';
 import { AuthService } from './auth.service';
 import { EntityManagerProvider } from './entity-manager-provider';
-import { UnitOfWorkManager } from './unit-of-work-manager';
+import { UnitOfWorkManagers } from './unit-of-work-manager';
 
 /**
  * Port of the Angular client's `core/services/auth.interceptor.spec.ts`: the interceptor became
@@ -33,7 +33,7 @@ describe('apiFetch', () => {
 
     const validation = createValidationService();
     const emProvider = new EntityManagerProvider(validation);
-    const auth = new AuthService(emProvider, new UnitOfWorkManager(emProvider));
+    const auth = new AuthService(emProvider, new UnitOfWorkManagers());
     const signIn = vi.spyOn(auth, 'signIn').mockResolvedValue();
     setTokenSource(auth);
     return { signIn };

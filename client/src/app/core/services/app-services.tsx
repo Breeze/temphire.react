@@ -7,7 +7,8 @@ import { setTokenSource } from './api-fetch';
 import { AuthService, AuthState } from './auth.service';
 import { EntityManagerProvider } from './entity-manager-provider';
 import { SaveHandler } from './save-handler';
-import { UnitOfWorkManager } from './unit-of-work-manager';
+import { ResourceMgtUnitOfWorkManager } from './resource-mgt-unit-of-work-manager';
+import { UnitOfWorkManagers } from './unit-of-work-manager';
 
 /**
  * The app's long-lived services, and how components get at them.
@@ -28,7 +29,10 @@ import { UnitOfWorkManager } from './unit-of-work-manager';
  */
 export interface AppServices {
   readonly emProvider: EntityManagerProvider;
-  readonly unitOfWorkManager: UnitOfWorkManager;
+  /** Every workspace's unit-of-work managers, for what concerns them all: saves, sign-out. */
+  readonly unitOfWorkManagers: UnitOfWorkManagers;
+  /** The Resource Management workspace's units of work. */
+  readonly resourceMgtUnitOfWorkManager: ResourceMgtUnitOfWorkManager;
   readonly auth: AuthService;
   /** The app's validation service; `main.tsx` provides it to the validation hooks. */
   readonly validation: ValidationService;
@@ -62,15 +66,16 @@ export function createAppServices(): AppServices {
     ruleSources: [breezeRuleSource(() => emProvider.metadataStore)],
   });
   const emProvider = new EntityManagerProvider(validation);
-  const unitOfWorkManager = new UnitOfWorkManager(emProvider);
-  const auth = new AuthService(emProvider, unitOfWorkManager);
-  const saveHandler = new SaveHandler(unitOfWorkManager);
+  const unitOfWorkManagers = new UnitOfWorkManagers();
+  const resourceMgtUnitOfWorkManager = new ResourceMgtUnitOfWorkManager(emProvider, unitOfWorkManagers);
+  const auth = new AuthService(emProvider, unitOfWorkManagers);
+  const saveHandler = new SaveHandler(unitOfWorkManagers);
 
   // Every request goes through `apiFetch`, which gets its token from the session - the counterpart
   // of `provideHttpClient(withInterceptors([authInterceptor]))`.
   setTokenSource(auth);
 
-  return { emProvider, unitOfWorkManager, auth, validation, saveHandler };
+  return { emProvider, unitOfWorkManagers, resourceMgtUnitOfWorkManager, auth, validation, saveHandler };
 }
 
 const AppServicesContext = createContext<AppServices | null>(null);

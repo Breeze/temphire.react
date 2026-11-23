@@ -2,7 +2,7 @@ import type { ErrorVisibility, ValidationError, ValidationService } from '@ideab
 import { notifications } from '@mantine/notifications';
 
 import type { UnitOfWork } from './unit-of-work';
-import { SHARED_UNIT_OF_WORK_KEY, type UnitOfWorkManager } from './unit-of-work-manager';
+import type { UnitOfWorkManagers } from './unit-of-work-manager';
 
 /** What a workspace adds to {@link SaveHandler.save}. */
 export interface SaveOptions {
@@ -40,7 +40,7 @@ export type SavableUnitOfWork = Pick<UnitOfWork, 'entityStore' | 'commit'>;
  * workspace.
  */
 export class SaveHandler {
-  constructor(private readonly unitOfWorkManager: Pick<UnitOfWorkManager, 'has' | 'get'>) {}
+  constructor(private readonly unitOfWorkManagers: Pick<UnitOfWorkManagers, 'dropSharedCaches'>) {}
 
   /**
    * Validates the unit of work and saves it.  With broken rules nothing is saved: every error is
@@ -71,15 +71,12 @@ export class SaveHandler {
     this.dropSharedCache(unitOfWork);
   }
 
-  /** Drops the shared unit of work's cache, unless there is none yet or it is the one just saved. */
+  /**
+   * Drops every workspace's shared cache, except where there is none yet or it is the one just
+   * saved: a save can change what any of them has loaded.
+   */
   private dropSharedCache(saved: SavableUnitOfWork): void {
-    if (!this.unitOfWorkManager.has(SHARED_UNIT_OF_WORK_KEY)) {
-      return;
-    }
-    const shared = this.unitOfWorkManager.get(SHARED_UNIT_OF_WORK_KEY);
-    if (shared !== saved) {
-      shared.clear();
-    }
+    this.unitOfWorkManagers.dropSharedCaches(saved);
   }
 }
 
