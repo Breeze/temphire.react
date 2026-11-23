@@ -530,7 +530,7 @@ re-renders (section 14) and the field shows the new value and any error. Where A
 React has no HTTP client and no interceptors. The browser's `fetch` does the requests, and a
 wrapper adds what the interceptor did: `apiFetch` in `core/services/api-fetch.ts` attaches the
 access token (renewing it first if it is about to expire) and signs the user in again on a 401.
-Breeze is given the same function, `configureBreeze({ fetch: emptyBodyAsNull(apiFetch) })`, so every
+Breeze is given the same function, `configureBreeze({ fetch: apiFetch })`, so every
 request goes through one place - the same outcome as Angular's `httpClientFetch`.
 
 Two things that came up in the conversion:

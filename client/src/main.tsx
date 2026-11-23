@@ -16,7 +16,6 @@ import { createRoutes } from './app/app.routes';
 import { ErrorBoundary } from './app/core/ErrorBoundary';
 import { apiFetch } from './app/core/services/api-fetch';
 import { AppServicesProvider, createAppServices } from './app/core/services/app-services';
-import { emptyBodyAsNull } from './app/core/services/breeze-fetch';
 import { showError } from './app/core/services/error-handler';
 import { temphireTheme } from './app/core/theme/temphire-theme';
 
@@ -34,10 +33,8 @@ import { temphireTheme } from './app/core/theme/temphire-theme';
  * model library, JSON URI builder, Web API data service, camelCase naming); the one thing to set is
  * the transport.  `apiFetch` adds the access token, which in Angular `httpClientFetch` got from
  * `HttpClient`'s interceptor.
- *
- * WORKAROUND: `emptyBodyAsNull` works around a breeze-client 3.0.0 bug - see `breeze-fetch.ts`.
  */
-configureBreeze({ fetch: emptyBodyAsNull(apiFetch) });
+configureBreeze({ fetch: apiFetch });
 
 /** The services Angular's root injector would have created; see `app-services.tsx`. */
 const services = createAppServices();

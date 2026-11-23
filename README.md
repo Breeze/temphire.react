@@ -391,14 +391,11 @@ The server's other settings are in [its README](https://github.com/Breeze/temphi
 
 ## Known gaps
 
-- **The breeze-client 3.0.0 empty-body workaround** is carried over from the Angular version
-  (`core/services/breeze-fetch.ts`); its spec fails once a release with the fix is installed, which
-  is the signal to remove it.
 - **The main bundle is large**: about 740 kB, 230 kB compressed - React, Mantine and Breeze - and
   Vite warns about it. The pages themselves load as separate chunks.
 - **No end-to-end tests.** There are unit tests on both tiers: over 100 in the client (Vitest and
   React Testing Library) and over 60 on the server.  The client's cover:
-  - the services: the sign-in guard, the API and Breeze fetches, the dialogs, the error handler,
+  - the services: the sign-in guard, the API fetch, the dialogs, the error handler,
     the save handler and the staffing resource repository;
   - validation: the server's rules as the client runs them, the field bindings and display names;
   - Resource Management: the search box, the address list, the tabs' error marks and the "Not

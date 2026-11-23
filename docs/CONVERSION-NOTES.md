@@ -65,7 +65,6 @@ unchanged apart from a first line naming where it came from.
 | `core/services/resource-mgt-unit-of-work.ts` | same | Copied |
 | `core/services/repository.ts` | same | Copied |
 | `core/services/pkce.ts`, `roles.ts` | same | Copied |
-| `core/services/breeze-fetch.ts` | same | Copied; the note on removing it points at `main.tsx` |
 | `core/services/error-handler.service.ts` | `core/services/error-handler.ts` | Functions, not a service: `showError`, `describe`, `isHarmless`; toasts through Mantine |
 | `core/services/dialog.service.ts` | `core/services/dialog.service.tsx` | Promise-returning functions over Mantine's modals; content is JSX rather than a component type plus data |
 | `core/dialogs/message-box.component.ts` | `core/dialogs/MessageBox.tsx` | |
@@ -136,7 +135,6 @@ and the pane's effect calls `tick()` every 30 seconds.
 | `core/services/auth.interceptor.spec.ts` | `core/services/api-fetch.spec.ts` |
 | `core/services/auth.guard.spec.ts` | `core/services/auth.guard.spec.ts` |
 | `core/services/error-handler.service.spec.ts` | `core/services/error-handler.spec.ts` |
-| `core/services/breeze-fetch.spec.ts` | same (the `HttpClient` case now goes through `apiFetch`) |
 | `core/validation/entity-fields.spec.ts` | `core/validation/EntityFields.spec.tsx` |
 | `core/validation/server-rules.spec.ts` | same (copied) |
 | `core/model-display-names.spec.ts` | same (copied) |
