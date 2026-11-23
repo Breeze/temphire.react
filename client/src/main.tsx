@@ -3,7 +3,7 @@ import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
 import './styles.css';
 
-import { ValidationProvider } from '@ideablade/validation/react';
+import { ValidationProvider } from 'ideablade-validation/react';
 import { MantineProvider } from '@mantine/core';
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications } from '@mantine/notifications';

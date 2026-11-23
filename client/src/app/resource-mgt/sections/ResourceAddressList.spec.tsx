@@ -1,6 +1,6 @@
-import { createValidationService } from '@ideablade/validation';
-import { breezeModelType } from '@ideablade/validation/breeze';
-import { ValidationProvider } from '@ideablade/validation/react';
+import { createValidationService } from 'ideablade-validation';
+import { breezeModelType } from 'ideablade-validation/breeze';
+import { ValidationProvider } from 'ideablade-validation/react';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { Entity } from 'breeze-client';
 import { vi } from 'vitest';

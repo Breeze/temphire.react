@@ -1,4 +1,4 @@
-import { ValidationForm, useFieldValidation } from '@ideablade/validation/react';
+import { ValidationForm, useFieldValidation } from 'ideablade-validation/react';
 import { IconCalendar, IconMapPin, IconPencil, IconPhone } from '@tabler/icons-react';
 
 import { useUnitOfWork } from '../core/hooks/use-unit-of-work';

@@ -1,4 +1,4 @@
-import { ValidationForm, useEntityStoreValidation, useShownErrors } from '@ideablade/validation/react';
+import { ValidationForm, useEntityStoreValidation, useShownErrors } from 'ideablade-validation/react';
 import { Alert, Button, Radio } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 

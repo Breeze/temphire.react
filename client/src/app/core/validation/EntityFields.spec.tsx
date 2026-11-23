@@ -2,19 +2,19 @@ import {
   ErrorVisibility,
   ModelValidationMetadataMap,
   createValidationService,
-} from '@ideablade/validation';
+} from 'ideablade-validation';
 import {
   breezeEntityStore,
   breezeIsNew,
   breezeModelType,
   breezeValidator,
   installBreezeValidators,
-} from '@ideablade/validation/breeze';
+} from 'ideablade-validation/breeze';
 import {
   ErrorVisibilityProvider,
   ValidationForm,
   ValidationProvider,
-} from '@ideablade/validation/react';
+} from 'ideablade-validation/react';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { Entity } from 'breeze-client';
 

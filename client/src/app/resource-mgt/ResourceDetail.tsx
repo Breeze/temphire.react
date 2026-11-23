@@ -1,4 +1,4 @@
-import { useEntityStoreValidation, useErrorVisibility, useErrorVisibilityVersion } from '@ideablade/validation/react';
+import { useEntityStoreValidation, useErrorVisibility, useErrorVisibilityVersion } from 'ideablade-validation/react';
 import { Loader, Tabs } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { Suspense, lazy, useState } from 'react';

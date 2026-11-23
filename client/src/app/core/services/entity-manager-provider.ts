@@ -1,5 +1,5 @@
-import { ModelValidationMetadataMap, ValidationService } from '@ideablade/validation';
-import { installBreezeValidators } from '@ideablade/validation/breeze';
+import { ModelValidationMetadataMap, ValidationService } from 'ideablade-validation';
+import { installBreezeValidators } from 'ideablade-validation/breeze';
 import { DataService, EntityManager, EntityQuery, MetadataStore } from 'breeze-client';
 
 import { environment } from '../../../environments/environment';

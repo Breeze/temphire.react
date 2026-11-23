@@ -1,4 +1,4 @@
-import type { ErrorVisibility, ValidationError, ValidationService } from '@ideablade/validation';
+import type { ErrorVisibility, ValidationError, ValidationService } from 'ideablade-validation';
 import { notifications } from '@mantine/notifications';
 
 import type { UnitOfWork } from './unit-of-work';

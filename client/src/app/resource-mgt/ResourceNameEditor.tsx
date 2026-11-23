@@ -1,4 +1,4 @@
-import { useValidationService } from '@ideablade/validation/react';
+import { useValidationService } from 'ideablade-validation/react';
 import { Button, Group, Stack, TextInput } from '@mantine/core';
 import { FormErrors, useForm } from '@mantine/form';
 

@@ -1,4 +1,4 @@
-import { ErrorVisibility, asyncValidator, createEntityStore, createValidationService } from '@ideablade/validation';
+import { ErrorVisibility, asyncValidator, createEntityStore, createValidationService } from 'ideablade-validation';
 import { notifications } from '@mantine/notifications';
 import { vi } from 'vitest';
 
