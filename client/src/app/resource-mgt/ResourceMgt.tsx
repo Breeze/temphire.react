@@ -143,11 +143,11 @@ export function ResourceMgt() {
     !!staffingResource &&
     !!unitOfWork &&
     unitOfWork.hasChanges() &&
-    // Save waits until the async rules, if any, have answered.  It stays enabled while there are
-    // errors: a new resource's errors are hidden until the user has seen the field, so a disabled
-    // Save would give no reason.  Clicking it shows them all instead (`save()`).
-    !!validationResult &&
-    !validationResult.pending &&
+    // Save stays enabled while there are errors, and while the continuous validation is still
+    // running after an edit: clicking it validates the data as it is then, async rules included,
+    // and shows every error instead of saving (`save()`).  A disabled Save would give no reason
+    // for a new resource's errors, which are hidden until the user has seen the field, and waiting
+    // for the validation would swallow a click made right after typing.
     !staffingResource.entityAspect.entityState.isDeleted();
   const canRefresh = !!staffingResource && !staffingResource.entityAspect.entityState.isAdded();
 
