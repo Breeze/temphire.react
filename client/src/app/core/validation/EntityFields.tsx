@@ -9,14 +9,14 @@ import {
   TextareaProps,
 } from '@mantine/core';
 import { DateInput, DateInputProps } from '@mantine/dates';
-import { useFieldValidation } from '@ideablade/validation/react';
+import { useFieldValidation } from 'ideablade-validation/react';
 import { Entity } from 'breeze-client';
 
 /**
  * Inputs bound to one property of a Breeze entity, showing that property's validation errors.
  *
  * New in the React port; they take the place of `[(ngModel)]="address.city"` in a form that
- * validates the entity with `@ideablade/validation` (`<form ngForm [validationModel]="address">`
+ * validates the entity with `ideablade-validation` (`<form ngForm [validationModel]="address">`
  * in the Angular client):
  *
  * ```html

@@ -1,4 +1,4 @@
-import { createValidationService } from '@ideablade/validation';
+import { createValidationService } from 'ideablade-validation';
 import { vi } from 'vitest';
 
 import { environment } from '../../../environments/environment';

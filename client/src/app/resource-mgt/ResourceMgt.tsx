@@ -1,11 +1,11 @@
-import { ErrorVisibility } from '@ideablade/validation';
-import { breezeIsNew } from '@ideablade/validation/breeze';
+import { ErrorVisibility } from 'ideablade-validation';
+import { breezeIsNew } from 'ideablade-validation/breeze';
 import {
   ErrorVisibilityProvider,
   ValidationProvider,
   useObservable,
   useValidationScope,
-} from '@ideablade/validation/react';
+} from 'ideablade-validation/react';
 import { Loader } from '@mantine/core';
 import {
   IconDeviceFloppy,

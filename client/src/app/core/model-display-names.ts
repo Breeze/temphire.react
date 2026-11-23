@@ -1,5 +1,5 @@
 // Copied unchanged from the Angular client's src/app/core/model-display-names.ts - it has no Angular in it.
-import { ModelValidationMetadataMap } from '@ideablade/validation';
+import { ModelValidationMetadataMap } from 'ideablade-validation';
 import { ComplexType, EntityType, MetadataStore } from 'breeze-client';
 
 import { modelClasses } from './model';

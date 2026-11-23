@@ -1,5 +1,5 @@
-import { ValidationService, createValidationService } from '@ideablade/validation';
-import { breezeModelType, breezeRuleSource, breezeValidator } from '@ideablade/validation/breeze';
+import { ValidationService, createValidationService } from 'ideablade-validation';
+import { breezeModelType, breezeRuleSource, breezeValidator } from 'ideablade-validation/breeze';
 import { ReactNode, createContext, useContext, useSyncExternalStore } from 'react';
 
 import { clientValidationMetadata } from '../validation/client-validation-metadata';
@@ -42,7 +42,7 @@ export interface AppServices {
 
 export function createAppServices(): AppServices {
   /**
-   * Validation (`@ideablade/validation`) - the counterpart of `provideValidation` in the Angular
+   * Validation (`ideablade-validation`) - the counterpart of `provideValidation` in the Angular
    * client's `app.config.ts`.
    *
    * The rules come from the server's validation metadata, which `EntityManagerProvider` loads at

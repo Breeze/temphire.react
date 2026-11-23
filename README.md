@@ -55,11 +55,6 @@ git clone --recurse-submodules https://github.com/Breeze/temphire.react.git
 In a clone made without it, run `git submodule update --init` once.  After a `git pull` that moves
 the submodule to another commit, run `git submodule update` to check that commit out.
 
-TempHire's validation uses a preview of
-[IdeaBlade Validation](https://github.com/Breeze/ideablade-validation), which isn't published yet.
-Its packages are in `packages/` and `server/packages/`, and `npm install` and `dotnet` take them
-from there (see [Validation](#validation)), so there is nothing extra to install.
-
 Then two terminals; the server first, because the client loads its Breeze and validation metadata
 from it.
 
@@ -206,12 +201,9 @@ how usage is counted, and how to change the budgets or the prices - in detail.
 
 ## Validation
 
-> **Preview.**  Validation uses a preview of IdeaBlade Validation (`0.1.0-preview.10`), which
-> isn't published to NuGet or npm yet: the builds are in `packages/` and `server/packages/`, where
-> `client/package.json` and the server's `nuget.config` find them (`packages/README.md` explains
-> how to update them).  The
-> framework's API may still change before its first release, and so may its name - the
-> `IdeaBlade.Validation` / `@ideablade/validation` packages and their namespaces and imports.
+> Validation uses IdeaBlade Validation 0.1.0: [`ideablade-validation`](https://www.npmjs.com/package/ideablade-validation)
+> on npm and [`IdeaBlade.Validation`](https://www.nuget.org/packages/IdeaBlade.Validation) on NuGet.
+> As with any 0.x version, its API may still change between minor versions.
 
 The rules are the server's, in two places: the entities' data annotations (`[Required]`,
 `[StringLength]`), which reach the client in the Breeze metadata, and the validation metadata
@@ -219,7 +211,7 @@ The rules are the server's, in two places: the entities' data annotations (`[Req
 U.S. addresses with a state and a ZIP code, phone number formats, rates, valid dates, a plausible
 date of birth (neither in the future nor more than 123 years ago), and a resource
 with at least one address and one phone number who is at least 18 years old when hired.  Both are
-read by [IdeaBlade.Validation / `@ideablade/validation`](https://github.com/Breeze/ideablade-validation),
+read by [IdeaBlade.Validation / `ideablade-validation`](https://github.com/Breeze/ideablade-validation),
 which surfaces every rule as the same kind of `ValidationError` on both sides; the server's README
 describes the server half in [Validation](https://github.com/Breeze/temphire.server#validation).
 On the client:
@@ -365,7 +357,6 @@ temphire.react/
 │   ├── TempHire.Model/             # entities, DbContexts, migrations, sample data
 │   ├── TempHire.Server/            # Breeze, validation, OAuth, Quinn and MCP
 │   └── TempHire.Server.Tests/      # saves, rules, sample data, queries, who may call what
-├── packages/                       # the @ideablade/validation preview
 └── client/
     ├── metadata.json               # Breeze metadata exported from the server
     ├── vite.config.ts              # build, dev server and tests

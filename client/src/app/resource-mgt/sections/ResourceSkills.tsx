@@ -1,4 +1,4 @@
-import { ValidationForm } from '@ideablade/validation/react';
+import { ValidationForm } from 'ideablade-validation/react';
 import { Button } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
