@@ -98,11 +98,6 @@ export class UnitOfWork extends ChangeNotifier {
     return this.manager.getChanges();
   }
 
-  /** True when the given entity lives in this unit of work - port of `IUnitOfWork.HasEntity`. */
-  hasEntity(entity: Entity): boolean {
-    return !!entity && entity.entityAspect?.entityManager === this.manager;
-  }
-
   /** Port of `IUnitOfWork.CommitAsync`. */
   async commit(): Promise<Entity[]> {
     const saveOptions = new SaveOptions({ resourceName: 'SaveChanges' });
