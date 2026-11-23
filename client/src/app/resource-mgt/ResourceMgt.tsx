@@ -65,7 +65,7 @@ type EditMode = 'view' | 'edit';
  *    that created them.  The toolbar always holds the latest ones (see `commands` below).
  */
 export function ResourceMgt() {
-  const { unitOfWorkManager, saveHandler } = useServices();
+  const { resourceMgtUnitOfWorkManager: unitOfWorkManager, saveHandler } = useServices();
 
   /** Only editors may add, change or delete; readers see the same screens read-only. */
   const mayEdit = useAuth().canEditStaffing;
@@ -240,7 +240,6 @@ export function ResourceMgt() {
       unitOfWork.rollback();
     }
 
-    unitOfWorkManager.releaseIfClean(staffingResourceId);
     return true;
   }
 
@@ -326,7 +325,7 @@ export function ResourceMgt() {
         return;
       }
       // The handler has dropped the shared cache, so the view-mode load below re-reads the saved graph.
-      unitOfWorkManager.releaseIfClean(id);
+      // The sandbox needs no releasing: once the screen moves on, nothing holds it.
       await loadDetail(id, 'view');
     });
   }
@@ -537,22 +536,6 @@ export function ResourceMgt() {
       void openFromLink(linkedId);
     }
   }, [linkedId]);
-
-  // Don't leave an empty sandbox behind - Angular's `DestroyRef.onDestroy`.  An effect's clean-up
-  // runs when the component unmounts; the id is read through a ref because the clean-up would
-  // otherwise see the id of the render that set it up.
-  const openId = useRef(staffingResourceId);
-  useEffect(() => {
-    openId.current = staffingResourceId;
-  });
-  useEffect(
-    () => () => {
-      if (openId.current) {
-        unitOfWorkManager.releaseIfClean(openId.current);
-      }
-    },
-    [unitOfWorkManager],
-  );
 
   return (
     <div className={`resource-mgt${busy.isBusy ? ' resource-mgt--busy' : ''}`}>

@@ -372,11 +372,12 @@ TempHire creates its long-lived services once and puts them in context:
 ```tsx
 // app-services.tsx
 export function createAppServices(): AppServices {
-  const emProvider = new EntityManagerProvider();
-  const unitOfWorkManager = new UnitOfWorkManager(emProvider);
-  const auth = new AuthService(emProvider, unitOfWorkManager);
+  const emProvider = new EntityManagerProvider(validation);
+  const unitOfWorkManagers = new UnitOfWorkManagers();
+  const resourceMgtUnitOfWorkManager = new ResourceMgtUnitOfWorkManager(emProvider, unitOfWorkManagers);
+  const auth = new AuthService(emProvider, unitOfWorkManagers);
   setTokenSource(auth);
-  return { emProvider, unitOfWorkManager, auth };
+  return { emProvider, unitOfWorkManagers, resourceMgtUnitOfWorkManager, auth /* , ... */ };
 }
 
 export function useServices(): AppServices { return useContext(AppServicesContext)!; }
@@ -387,7 +388,7 @@ export function useServices(): AppServices { return useContext(AppServicesContex
 <AppServicesProvider services={createAppServices()}> ... </AppServicesProvider>
 
 // any component
-const { unitOfWorkManager } = useServices();
+const { resourceMgtUnitOfWorkManager } = useServices();
 ```
 
 How the Angular patterns map:

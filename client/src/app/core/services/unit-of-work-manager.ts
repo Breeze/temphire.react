@@ -1,90 +1,155 @@
-
 import { ChangeNotifier } from './change-notifier';
 import { EntityManagerProvider } from './entity-manager-provider';
-import { ResourceMgtUnitOfWork } from './resource-mgt-unit-of-work';
+import { UnitOfWork } from './unit-of-work';
 
 /** The key used for the single shared, view-only unit of work.  DevForce used `Guid.Empty`. */
 export const SHARED_UNIT_OF_WORK_KEY = '00000000-0000-0000-0000-000000000000';
 
 /**
  * Port of the Angular client's `core/services/unit-of-work-manager.ts`, itself a port of Punch's
- * `IUnitOfWorkManager<T>`.
+ * `IUnitOfWorkManager<T>`.  Each workspace has a manager of its own, for its own kind of unit of
+ * work: `ResourceMgtUnitOfWorkManager` is Resource Management's.  A subclass only says how to create
+ * its unit of work (`newUnitOfWork`).
  *
  *  - `get(SHARED_UNIT_OF_WORK_KEY)` returns the one long-lived unit of work that every *read-only*
- *    screen shares, so they all see the same entity instances.
- *  - `get(resourceId)` returns a **sandbox** unit of work dedicated to editing that one resource, in
- *    its own `EntityManager`, so `Cancel` is a `rejectChanges()` on the sandbox.
+ *    screen of the workspace shares.
+ *  - `get(resourceId)` returns a **sandbox** unit of work dedicated to editing that one resource,
+ *    with its own `EntityManager`, so `Cancel` is a `rejectChanges()` on the sandbox alone.
  *
- * Punch evicted a unit of work once it had no pending changes; `releaseIfClean` does the same.
+ * **The cache holds its units of work weakly**, as Punch's did (Cocktail's `ObjectManager` kept them
+ * in a `WeakRefDictionary`): a unit of work stays as long as a screen holds it, and once nothing
+ * does, the garbage collector may take it and the next `get` creates a new one.  So a cancelled or
+ * saved edit leaves nothing behind, with no code to release it.  Until the collector runs, `get`
+ * can still return the old one, which is harmless.  A `FinalizationRegistry` removes the keys of
+ * collected units of work.
+ *
+ * What concerns every workspace's managers together - the saves, sign-out - is in
+ * `UnitOfWorkManagers`, which each manager registers with.
  */
-export class UnitOfWorkManager extends ChangeNotifier {
-  private readonly cache = new Map<string, ResourceMgtUnitOfWork>();
-  private saveCount = 0;
+export abstract class UnitOfWorkManager<T extends UnitOfWork> {
+  private readonly cache = new Map<string, WeakRef<T>>();
 
-  constructor(private readonly emProvider: EntityManagerProvider) {
-    super();
+  /** Removes a key once its unit of work is collected, unless the key has a newer one by then. */
+  private readonly collected = new FinalizationRegistry<string>((key) => {
+    if (!this.cache.get(key)?.deref()) {
+      this.cache.delete(key);
+    }
+  });
+
+  constructor(
+    protected readonly emProvider: EntityManagerProvider,
+    private readonly managers: UnitOfWorkManagers,
+  ) {
+    managers.register(this);
   }
 
   /**
-   * How many saves have succeeded, in any unit of work - port of Punch's `SavedMessage`, which the
-   * search list handled (`IHandle<SavedMessage>`) to re-run its query.  `ResourceSearch` subscribes
-   * to this manager and re-runs its search when the number changes.  (Angular: a signal read in the
-   * search's `resource()` params.)
+   * Creates the workspace's unit of work.
+   *
+   * @param onCommitted to be passed to the unit of work, which calls it after every successful save.
    */
-  readonly saves = (): number => this.saveCount;
+  protected abstract newUnitOfWork(onCommitted: () => void): T;
 
-  /** Returns the cached unit of work for `key`, creating it on first use. */
-  get(key: string): ResourceMgtUnitOfWork {
-    let unitOfWork = this.cache.get(key);
+  /** Returns the unit of work for `key`, creating it if there is none, or it has been collected. */
+  get(key: string): T {
+    let unitOfWork = this.find(key);
 
     if (!unitOfWork) {
       unitOfWork = this.create();
-      this.cache.set(key, unitOfWork);
+      this.add(key, unitOfWork);
     }
 
     return unitOfWork;
   }
 
-  /** Creates an unregistered unit of work - port of `IUnitOfWorkManager.Create`. */
-  create(): ResourceMgtUnitOfWork {
-    return new ResourceMgtUnitOfWork(this.emProvider, () => {
-      this.saveCount++;
-      this.notify();
-    });
+  /**
+   * Creates a unit of work without keeping it under a key - port of `IUnitOfWorkManager.Create`.
+   * See `add`.
+   */
+  create(): T {
+    return this.newUnitOfWork(() => this.managers.saved());
   }
 
   /**
-   * Registers a unit of work under a key.  Used when adding a resource: the sandbox has to be
-   * created *before* the new resource has an id, then filed under that id once it does.
+   * Keeps a unit of work under a key.  Used when adding a resource: the sandbox has to be created
+   * *before* the new resource has an id, then filed under that id once it does.
    */
-  add(key: string, unitOfWork: ResourceMgtUnitOfWork): void {
-    this.cache.set(key, unitOfWork);
+  add(key: string, unitOfWork: T): void {
+    this.cache.set(key, new WeakRef(unitOfWork));
+    this.collected.register(unitOfWork, key);
   }
 
+  /** Whether `key` has a unit of work that hasn't been collected. */
   has(key: string): boolean {
-    return this.cache.has(key);
+    return this.find(key) !== undefined;
   }
 
+  /** Forgets a sandbox at once, such as one whose resource was deleted. */
   remove(key: string): void {
     if (key !== SHARED_UNIT_OF_WORK_KEY) {
       this.cache.delete(key);
     }
   }
 
-  /** Drops a sandbox once it has nothing left to save - port of Punch's automatic eviction. */
-  releaseIfClean(key: string): void {
-    if (key === SHARED_UNIT_OF_WORK_KEY) {
-      return;
-    }
-
-    const unitOfWork = this.cache.get(key);
-    if (unitOfWork && !unitOfWork.hasChanges()) {
-      this.cache.delete(key);
+  /**
+   * Drops the shared unit of work's cache, unless there is none (yet, or any more) or it is `saved`,
+   * the one just saved.  See `SaveHandler`.
+   */
+  dropSharedCache(saved: object): void {
+    const shared = this.find(SHARED_UNIT_OF_WORK_KEY);
+    if (shared && shared !== saved) {
+      shared.clear();
     }
   }
 
   /** Forgets every unit of work - used on logout. */
   clear(): void {
     this.cache.clear();
+  }
+
+  /** The unit of work kept under `key`, if it hasn't been collected. */
+  private find(key: string): T | undefined {
+    return this.cache.get(key)?.deref();
+  }
+}
+
+/**
+ * Every workspace's unit-of-work manager, for what concerns them all: the count of saves (Punch's
+ * `SavedMessage` was app-wide too), dropping every shared cache after a save, and forgetting every
+ * unit of work at sign-out.  A manager registers itself when it is created.
+ */
+export class UnitOfWorkManagers extends ChangeNotifier {
+  private readonly managers = new Set<UnitOfWorkManager<UnitOfWork>>();
+  private saveCount = 0;
+
+  /**
+   * How many saves have succeeded, in any unit of work of any workspace - port of Punch's
+   * `SavedMessage`, which the search list handled (`IHandle<SavedMessage>`) to re-run its query.
+   * `ResourceSearch` reads it with `useSaveCount` and re-runs its search when the number changes.
+   * (Angular: a signal read in the search's `resource()` params.)
+   */
+  readonly saves = (): number => this.saveCount;
+
+  register(manager: UnitOfWorkManager<UnitOfWork>): void {
+    this.managers.add(manager);
+  }
+
+  /** Called by every unit of work after a successful save. */
+  saved(): void {
+    this.saveCount++;
+    this.notify();
+  }
+
+  /**
+   * After a save: drops every workspace's shared cache but `saved`'s, since a save can change what
+   * any of them has loaded.
+   */
+  dropSharedCaches(saved: object): void {
+    this.managers.forEach((manager) => manager.dropSharedCache(saved));
+  }
+
+  /** Forgets every unit of work of every workspace - used on logout. */
+  clear(): void {
+    this.managers.forEach((manager) => manager.clear());
   }
 }

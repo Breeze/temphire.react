@@ -42,8 +42,8 @@ interface ResourceSearchProps {
  * ignores a response that arrives after newer params have taken over.
  */
 export function ResourceSearch({ selectedId, onSelectionChange, ref }: ResourceSearchProps) {
-  const { unitOfWorkManager } = useServices();
-  const saves = useSaveCount(unitOfWorkManager);
+  const { resourceMgtUnitOfWorkManager: unitOfWorkManager, unitOfWorkManagers } = useServices();
+  const saves = useSaveCount(unitOfWorkManagers);
 
   /** What is in the box, as the user types. */
   const [text, setText] = useState('');

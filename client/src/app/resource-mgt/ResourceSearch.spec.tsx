@@ -24,9 +24,8 @@ describe('ResourceSearch', () => {
 
   function setUp() {
     searches = [];
-    const unitOfWorkManager = {
-      subscribe: () => () => undefined,
-      saves: () => 0,
+    const unitOfWorkManagers = { subscribe: () => () => undefined, saves: () => 0 };
+    const resourceMgtUnitOfWorkManager = {
       get: () => ({
         search: {
           simple: async (text: string) => {
@@ -37,7 +36,9 @@ describe('ResourceSearch', () => {
       }),
     };
     renderWithMantine(
-      <AppServicesProvider services={{ unitOfWorkManager } as unknown as AppServices}>
+      <AppServicesProvider
+        services={{ unitOfWorkManagers, resourceMgtUnitOfWorkManager } as unknown as AppServices}
+      >
         <ResourceSearch selectedId="id-1" onSelectionChange={() => undefined} />
       </AppServicesProvider>,
     );
