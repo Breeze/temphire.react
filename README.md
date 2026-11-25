@@ -205,6 +205,9 @@ anything is saved, it shows the current and the new address with Confirm and Can
 (`QuinnQuestion`).  Those questions come from the server's tools, and the user answers them, not
 Quinn: see
 [Changing an address through Quinn](https://github.com/Breeze/temphire.server#changing-an-address-through-quinn).
+Once the address is saved, the search list and the open resource refresh (`EventAggregator.savedElsewhere`);
+if the user is editing that resource with unsaved changes, `ResourceMgt` asks whether to discard
+them, and if not, refreshes the rest and keeps their changes for them to save.
 
 The `Agent` section of `server/TempHire.Server/appsettings.json` picks the model: **Ollama**
 (default, local) or **Claude**.

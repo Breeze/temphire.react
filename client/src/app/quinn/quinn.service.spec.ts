@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 
 import { environment } from '../../environments/environment';
 import { setTokenSource } from '../core/services/api-fetch';
+import { EventAggregator } from '../core/services/event-aggregator';
 import { QuinnConversation } from './quinn.service';
 
 /**
@@ -10,6 +11,7 @@ import { QuinnConversation } from './quinn.service';
  */
 describe('QuinnConversation', () => {
   let quinn: QuinnConversation;
+  let events: EventAggregator;
 
   /** A streamed answer, as `api/agent/chat` sends it: one JSON object per line. */
   const stream = (...updates: object[]) => updates.map((u) => JSON.stringify(u)).join('\n') + '\n';
@@ -33,10 +35,14 @@ describe('QuinnConversation', () => {
 
   beforeEach(() => {
     setTokenSource(null);
-    quinn = new QuinnConversation(() => ({
-      username: 'anna@harbor.test',
-      tenantName: 'Harbor Staffing',
-    }));
+    events = new EventAggregator();
+    quinn = new QuinnConversation(
+      () => ({
+        username: 'anna@harbor.test',
+        tenantName: 'Harbor Staffing',
+      }),
+      events,
+    );
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -330,6 +336,65 @@ describe('QuinnConversation', () => {
         messages: [
           { role: 'user', content: "Change Ann Lee's address to 12 Elm St, Tacoma" },
           { role: 'assistant', content: 'Nothing was changed.' },
+          { role: 'user', content: 'Thanks' },
+        ],
+      });
+    });
+  });
+  describe('changes a tool saved', () => {
+    const change = {
+      entityType: 'Address',
+      id: 'a1',
+      staffingResourceId: 'n1',
+      summary: "Updated Nancy Lynn Davolio's Home Address from 1 Main St to 2 Pine St.",
+    };
+
+    it('announces them as a save, so the screens that show them refresh', async () => {
+      await ask(
+        "Change Nancy's address",
+        stream(
+          { type: 'saved', changes: [change] },
+          { type: 'text', content: 'Done.' },
+          { type: 'done' },
+        ),
+      );
+
+      expect(events.lastSave()).toEqual({
+        unitOfWork: null,
+        elsewhere: { by: 'Quinn', staffingResourceIds: ['n1'] },
+      });
+    });
+
+    // The model gets earlier answers without their tool calls; without the record, it took back a
+    // change it had made.
+    it('keeps what was saved with the answer, and sends it back with the conversation', async () => {
+      await ask(
+        "Change Nancy's address",
+        stream(
+          { type: 'text', content: 'Let me do that.' },
+          { type: 'saved', changes: [change] },
+          { type: 'text', content: 'Done.' },
+          { type: 'done' },
+        ),
+      );
+      expect(lastAnswer().saved).toEqual([change.summary]);
+
+      let sent: unknown;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (_url: string, init: RequestInit) => {
+          sent = JSON.parse(init.body as string);
+          return new Response(
+            stream({ type: 'text', content: 'You are welcome.' }, { type: 'done' }),
+          );
+        }),
+      );
+      await quinn.ask('Thanks');
+
+      expect(sent).toEqual({
+        messages: [
+          { role: 'user', content: "Change Nancy's address" },
+          { role: 'assistant', content: 'Let me do that.Done.', saved: [change.summary] },
           { role: 'user', content: 'Thanks' },
         ],
       });

@@ -23,6 +23,7 @@ import { StaffingResourceListItem } from '../core/projections/staffing-resource-
 import { useBusy } from '../core/hooks/use-busy';
 import { useUnitOfWork } from '../core/hooks/use-unit-of-work';
 import { useAuth, useServices } from '../core/services/app-services';
+import type { SavedElsewhere } from '../core/services/event-aggregator';
 import { confirm, confirmYesNo, confirmYesNoCancel, openDialog } from '../core/services/dialog.service';
 import { showError } from '../core/services/error-handler';
 import { useLeaveGuard } from '../core/services/leave-guard';
@@ -65,7 +66,7 @@ type EditMode = 'view' | 'edit';
  *    that created them.  The toolbar always holds the latest ones (see `commands` below).
  */
 export function ResourceMgt() {
-  const { resourceMgtUnitOfWorkManager: unitOfWorkManager, saveHandler } = useServices();
+  const { resourceMgtUnitOfWorkManager: unitOfWorkManager, saveHandler, events } = useServices();
 
   /** Only editors may add, change or delete; readers see the same screens read-only. */
   const mayEdit = useAuth().canEditStaffing;
@@ -527,6 +528,83 @@ export function ResourceMgt() {
       search.current?.searchFor(resource.lastName);
     }
   });
+
+  // ------------------------------------------------------------------------------------------
+  // Changes saved elsewhere (Quinn)
+  // ------------------------------------------------------------------------------------------
+
+  // The unit of work on screen now, for code that awaits the user and must know whether the screen
+  // has moved on meanwhile: a render's own `unitOfWork` is the one of that render.
+  const currentUnitOfWork = useRef(unitOfWork);
+  useEffect(() => {
+    currentUnitOfWork.current = unitOfWork;
+  });
+
+  /**
+   * After a change saved elsewhere, such as an address Quinn changed.  The search list reloads by
+   * itself (it reads `useLastSave`); the resource on screen is reloaded here.
+   *
+   * - **Viewing:** the shared cache has been dropped, so the resource is read again, whichever it is.
+   * - **Editing another resource:** its sandbox is untouched; nothing to do.
+   * - **Editing this resource, nothing changed yet:** the sandbox is read again.
+   * - **Editing this resource, with unsaved changes:** the user decides.  Discard: the changes go
+   *   and the sandbox is read again.  Keep: the resource is read again into the sandbox, which keeps
+   *   their changes (Breeze merges a query with `PreserveChanges`) and takes the new data and row
+   *   versions of everything they didn't change.  Their save then goes through, unless they changed
+   *   what was changed elsewhere too: that save is a concurrency conflict, as any other would be.
+   *   After the save, the view shows the saved data, the change made elsewhere included.
+   *
+   * An effect event, like `openFromLink`: the subscription below runs it, with this render's state.
+   */
+  const refreshAfterChangeElsewhere = useEffectEvent(async (elsewhere: SavedElsewhere) => {
+    const id = staffingResourceId;
+    const resource = staffingResource;
+    const uow = unitOfWork;
+    if (!id || !resource || !uow) {
+      return;
+    }
+
+    if (isReadOnly) {
+      await loadDetail(id, 'view');
+      return;
+    }
+
+    if (!elsewhere.staffingResourceIds.includes(id)) {
+      return;
+    }
+
+    if (uow.hasChanges()) {
+      const answer = await confirmYesNo(
+        `${elsewhere.by} has just changed ${resource.fullName}'s data, while you are editing it.\n\n` +
+          'Discard your unsaved changes and show the new data? Choose No to keep your changes: ' +
+          'the rest is refreshed, and you can still save them.',
+      );
+      if (currentUnitOfWork.current !== uow) {
+        return; // The screen has moved on meanwhile.
+      }
+      if (answer === 'yes') {
+        uow.rollback();
+        uow.clear();
+      }
+    } else {
+      uow.clear();
+    }
+
+    await loadDetail(id, 'edit');
+  });
+
+  // Listen for saves while the screen is open.  The unit-of-work managers subscribed when the app
+  // started, so they hear a save first and have dropped the shared cache by the time this runs.
+  // (Angular: an `effect` reading `EventAggregator.lastSave`.)
+  useEffect(
+    () =>
+      events.onSaved((save) => {
+        if (save.elsewhere) {
+          void refreshAfterChangeElsewhere(save.elsewhere);
+        }
+      }),
+    [events],
+  );
 
   // Open the resource named in the URL: on arrival, and again whenever a link changes it while this
   // workspace is already open - the Angular `effect()` that watched the `resource` input.

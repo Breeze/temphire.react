@@ -32,13 +32,13 @@ export function Quinn() {
   // Memoized by the React Compiler: plain values only (README, "The React Compiler").
   'use memo';
 
-  const { auth } = useServices();
+  const { auth, events } = useServices();
   const session = useAuth();
   const navigate = useNavigate();
   const routerLocation = useLocation();
 
   // One conversation for the life of this component; see `QuinnConversation`.
-  const [conversation] = useState(() => new QuinnConversation(auth.getState));
+  const [conversation] = useState(() => new QuinnConversation(auth.getState, events));
   const quinn = useSyncExternalStore(conversation.subscribe, conversation.getState);
 
   const [question, setQuestion] = useState('');

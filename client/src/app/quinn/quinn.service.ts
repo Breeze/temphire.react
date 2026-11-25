@@ -2,6 +2,7 @@ import { environment } from '../../environments/environment';
 import { HttpError, apiRequest, getJson } from '../core/services/api-fetch';
 import { ChangeNotifier } from '../core/services/change-notifier';
 import { describe } from '../core/services/error-handler';
+import type { EventAggregator } from '../core/services/event-aggregator';
 import { QuotaBlock, UsageDto, quotaBlock, quotaBlockMessage } from '../usage/usage.model';
 import { MentionedPerson, mergePeople } from './link-people';
 
@@ -25,6 +26,12 @@ export interface QuinnMessage {
    * buttons.  Not sent to the server as part of the conversation: the answer goes to the tool.
    */
   readonly question?: QuinnQuestion;
+  /**
+   * For an answer: what its tools saved, one sentence each, from the stream's `saved` lines.  Sent
+   * back with the answer: the server sends the model earlier answers without their tool calls, and
+   * without this the model doubted, and took back, a change it had made.
+   */
+  readonly saved?: readonly string[];
 }
 
 /**
@@ -54,12 +61,23 @@ export interface QuinnChoice {
 
 /** One line of the streamed answer from `api/agent/chat`. */
 interface QuinnUpdate {
-  readonly type: 'text' | 'people' | 'input' | 'inputClosed' | 'done' | 'error';
+  readonly type: 'text' | 'people' | 'input' | 'inputClosed' | 'saved' | 'done' | 'error';
   readonly content?: string;
   readonly people?: readonly MentionedPerson[];
   /** The question's id, for `input` and `inputClosed`. */
   readonly id?: string;
   readonly choices?: readonly QuinnChoice[];
+  /** What a tool saved, for `saved`. */
+  readonly changes?: readonly SavedChange[];
+}
+
+/** An entity a tool saved, such as the address Quinn changed, and its staffing resource. */
+interface SavedChange {
+  readonly entityType: string;
+  readonly id: string;
+  readonly staffingResourceId: string;
+  /** What was done, in a sentence: kept with the answer (`QuinnMessage.saved`). */
+  readonly summary?: string;
 }
 
 /** An example question offered under the introduction. */
@@ -144,8 +162,12 @@ export class QuinnConversation extends ChangeNotifier {
 
   /**
    * @param user who is signed in, for the introduction: their name and company.
+   * @param events where a change a tool saved is announced, so the screens that show it refresh.
    */
-  constructor(private readonly user: () => { username: string | null; tenantName: string | null }) {
+  constructor(
+    private readonly user: () => { username: string | null; tenantName: string | null },
+    private readonly events: Pick<EventAggregator, 'savedElsewhere'>,
+  ) {
     super();
   }
 
@@ -220,7 +242,9 @@ export class QuinnConversation extends ChangeNotifier {
    * as the model writes them, the `people` the answer can mention as the tools return them, and
    * `done` at the end.  The pieces grow the answer as they arrive.  A tool may ask the user
    * something on the way (`input`): it becomes a message of its own, with the question, and the
-   * text after it a new message below it, once the user has answered (see `answer`).
+   * text after it a new message below it, once the user has answered (see `answer`).  When a tool
+   * has saved a change (`saved`), it is announced as a save (`EventAggregator.savedElsewhere`), so
+   * the screens that show the changed data refresh it.
    *
    * Angular read the lines from `HttpClient`'s download progress events.  Without `HttpClient`, the
    * response body is a stream: `response.body.getReader()` hands out the bytes as they arrive, and
@@ -242,6 +266,9 @@ export class QuinnConversation extends ChangeNotifier {
     let pending = '';
     // Whether a tool asked the user something: then an answer without text of its own is fine.
     let asked = false;
+    // What the tools saved, kept with the answer once it is complete.
+    const saved: string[] = [];
+    const firstOfAnswer = this.nextId;
 
     const handle = (line: string) => {
       if (!line.trim()) {
@@ -273,6 +300,15 @@ export class QuinnConversation extends ChangeNotifier {
         });
       } else if (update.type === 'inputClosed') {
         this.closeQuestions((q) => q.id === update.id);
+      } else if (update.type === 'saved') {
+        saved.push(...(update.changes ?? []).flatMap((c) => (c.summary ? [c.summary] : [])));
+        // A tool saved a change, such as an address: the screens that show it refresh it.
+        this.events.savedElsewhere({
+          by: 'Quinn',
+          staffingResourceIds: [
+            ...new Set((update.changes ?? []).map((c) => c.staffingResourceId)),
+          ],
+        });
       } else if (update.type === 'done') {
         if (answerId === undefined && asked) {
           // Nothing more to say.
@@ -291,7 +327,7 @@ export class QuinnConversation extends ChangeNotifier {
     try {
       const conversation = this.state.messages
         .filter((m) => !m.intro && !m.question && m.role !== 'error')
-        .map(({ role, content }) => ({ role, content }));
+        .map(({ role, content, saved }) => (saved ? { role, content, saved } : { role, content }));
 
       const response = await apiRequest(`${environment.agentApiRoot}/chat`, {
         method: 'POST',
@@ -322,6 +358,7 @@ export class QuinnConversation extends ChangeNotifier {
       }
       // A question still waiting can't be answered once the answer has ended.
       this.closeQuestions(() => true);
+      this.keepSaved(firstOfAnswer, saved);
       this.knownPeople = people;
       this.set({ busy: false });
 
@@ -369,6 +406,19 @@ export class QuinnConversation extends ChangeNotifier {
         this.changeQuestion(messageId, (q) => ({ ...q, state: 'open' }));
         this.add('error', describe(error).detail);
       }
+    }
+  }
+
+  /**
+   * Keeps what the tools saved with the answer: on its last message of text, the one the
+   * conversation sends back (questions aren't sent).
+   */
+  private keepSaved(firstOfAnswer: number, saved: readonly string[]): void {
+    const answer = this.state.messages
+      .filter((m) => m.id >= firstOfAnswer && m.role === 'assistant' && !m.question)
+      .at(-1);
+    if (saved.length > 0 && answer) {
+      this.change(answer.id, (m) => ({ ...m, saved: [...(m.saved ?? []), ...saved] }));
     }
   }
 
