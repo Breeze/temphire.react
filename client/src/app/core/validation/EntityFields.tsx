@@ -78,6 +78,7 @@ function errorProps(message: string | null) {
 export function EntityTextInput<T extends Entity>({
   entity,
   property,
+  onBlur,
   ...rest
 }: EntityProps<T> & Omit<TextInputProps, 'value' | 'onChange' | 'error'>) {
   const field = useFieldValidation(property);
@@ -85,7 +86,10 @@ export function EntityTextInput<T extends Entity>({
     <TextInput
       {...rest}
       {...errorProps(field.message)}
-      onBlur={field.markTouched}
+      onBlur={(event) => {
+        field.markTouched();
+        onBlur?.(event);
+      }}
       value={(read(entity, property) as string | null) ?? ''}
       onChange={(event) => {
         write(entity, property, event.currentTarget.value);

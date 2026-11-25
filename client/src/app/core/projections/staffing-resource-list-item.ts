@@ -18,7 +18,5 @@ export interface StaffingResourceListItem {
   city?: string;
   state?: string;
   zipcode?: string;
-  areaCode?: string;
-  number?: string;
   phoneNumber?: string;
 }

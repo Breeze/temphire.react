@@ -90,7 +90,7 @@ export function ResourceSummary({ staffingResource, readOnly, unitOfWork }: Sect
             )}
             {phone && (
               <span className="summary__fact">
-                <IconPhone size={14} aria-hidden="true" />({phone.areaCode}) {phone.number}
+                <IconPhone size={14} aria-hidden="true" />{phone.number}
               </span>
             )}
           </div>
