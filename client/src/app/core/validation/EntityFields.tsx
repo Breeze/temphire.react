@@ -66,8 +66,11 @@ function write<T extends Entity>(entity: T, property: keyof T & string, value: u
   (entity as Record<string, unknown>)[property] = value;
 }
 
-/** Mantine's props for showing an error: red border, message on hover, `aria-invalid`. */
-function errorProps(message: string | null) {
+/**
+ * Mantine's props for showing an error: red border, message on hover, `aria-invalid`.  Exported
+ * for fields built on another Mantine input (`AddressLine1Input`).
+ */
+export function errorProps(message: string | null) {
   return {
     error: !!message,
     title: message ?? undefined,
