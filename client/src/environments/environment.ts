@@ -31,6 +31,8 @@ export const environment = {
   agentApiRoot: `${server}/api/agent`,
   /** Quinn's usage and budgets for the signed-in user - see `UsageController`. */
   usageApiRoot: `${server}/api/usage`,
+  /** Address completion for the address form - see `AddressController`. */
+  addressApiRoot: `${server}/api/address`,
   /**
    * The OAuth authorization server: TempHire.Server itself.  The browser goes there to sign in (the
    * sample users are offered on its sign-in page), and the app gets its tokens from there.  Empty

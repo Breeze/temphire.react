@@ -7,6 +7,7 @@ import { useUnitOfWork } from '../../core/hooks/use-unit-of-work';
 import { openDialog } from '../../core/services/dialog.service';
 import { EntitySelect, EntityTextInput } from '../../core/validation/EntityFields';
 import { ItemSelector } from '../ItemSelector';
+import { AddressLine1Input } from './AddressLine1Input';
 import type { SectionProps } from '../ResourceDetail';
 import './ResourceAddressList.css';
 
@@ -16,7 +17,8 @@ import './ResourceAddressList.css';
  * Port of the Angular client's `resource-mgt/sections/resource-address-list.component.ts` (and
  * before it of `StaffingResourceAddressListViewModel.cs` + `StaffingResourceAddressItemViewModel.cs`).
  * The "Set Primary" button of the original is a radio, which is what the mutually exclusive flag
- * is; the states come from the cache, which was seeded at sign-in.
+ * is; the states come from the cache, which was seeded at sign-in.  Address 1 suggests U.S.
+ * addresses as the user types (`AddressLine1Input`), which the original didn't.
  *
  * `useUnitOfWork` re-renders this list whenever an entity in the unit of work changes: Breeze
  * changes `staffingResource.addresses` in place when an address is added or deleted, which React
@@ -108,10 +110,10 @@ export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: 
               <ValidationForm model={address}>
                 <div className="address__fields">
                   <label htmlFor={`address1-${address.id}`}>Address 1:</label>
-                  <EntityTextInput
+                  <AddressLine1Input
                     id={`address1-${address.id}`}
-                    entity={address}
-                    property="address1"
+                    address={address}
+                    stateIds={states.map((state) => state.value)}
                     readOnly={readOnly}
                   />
 
