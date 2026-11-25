@@ -45,7 +45,7 @@ export abstract class UnitOfWorkManager<T extends UnitOfWork> {
   ) {
     // `IHandle<SavedMessage>` and `IHandle<LoggedOutMessage>`.  Listeners run synchronously, as
     // soon as the save has committed: before anything reloads.
-    events.onSaved((save) => this.dropSharedCache(save.unitOfWork.deref()));
+    events.onSaved((save) => this.dropSharedCache(save.unitOfWork?.deref()));
     events.onLoggedOut(() => this.forgetAll());
   }
 

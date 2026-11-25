@@ -1,10 +1,28 @@
-/** A successful save, in any unit of work of any workspace.  A new object for every save. */
+/**
+ * A successful save, in any unit of work of any workspace, or on the server on the user's behalf
+ * (Quinn).  A new object for every save.
+ */
 export interface SavedEvent {
   /**
    * The unit of work that was saved.  Held weakly, so the latest save doesn't keep a sandbox alive
-   * after its screen has let go of it (see `UnitOfWorkManager`).
+   * after its screen has let go of it (see `UnitOfWorkManager`).  Null for a change saved
+   * elsewhere: see `elsewhere`.
    */
-  readonly unitOfWork: WeakRef<object>;
+  readonly unitOfWork: WeakRef<object> | null;
+  /**
+   * A change saved outside the app's units of work - by Quinn, on the server - and what it
+   * changed.  The screens showing those staffing resources refresh them, as after a save of their
+   * own, since nothing else in the app knows about it.
+   */
+  readonly elsewhere?: SavedElsewhere;
+}
+
+/** A change saved outside the app's units of work: see `SavedEvent.elsewhere`. */
+export interface SavedElsewhere {
+  /** Who saved it, for the user: "Quinn". */
+  readonly by: string;
+  /** The staffing resources whose data changed. */
+  readonly staffingResourceIds: readonly string[];
 }
 
 /** A sign-out.  A new object for every one. */
@@ -56,7 +74,10 @@ export class EventAggregator {
    */
   readonly lastSave = this.saves.latest;
 
-  /** Subscribes to the saves.  Every unit-of-work manager drops its shared cache on one. */
+  /**
+   * Subscribes to the saves.  Every unit-of-work manager drops its shared cache on one, and
+   * Resource Management refreshes the resource it shows after a change saved elsewhere (Quinn).
+   */
   readonly onSaved = this.saves.subscribe;
 
   /**
@@ -69,6 +90,11 @@ export class EventAggregator {
   /** Called by a unit of work after every successful save. */
   saved(unitOfWork: object): void {
     this.saves.publish({ unitOfWork: new WeakRef(unitOfWork) });
+  }
+
+  /** Called when a change was saved outside the app's units of work, such as by Quinn. */
+  savedElsewhere(elsewhere: SavedElsewhere): void {
+    this.saves.publish({ unitOfWork: null, elsewhere });
   }
 
   /** Called at sign-out. */

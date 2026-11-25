@@ -112,7 +112,7 @@ unchanged apart from a first line naming where it came from.
 
 | Angular | React | Notes |
 |---|---|---|
-| `quinn/quinn.component.ts` + `.css` | `quinn/Quinn.tsx` + `Quinn.css` | |
+| `quinn/quinn.component.ts` + `.css` | `quinn/Quinn.tsx` + `Quinn.css` | The question card in its template (a tool's choice or confirmation) is a component of its own, `quinn/QuinnQuestion.tsx` |
 | `quinn/quinn.service.ts` | `quinn/quinn.service.ts` (`QuinnConversation`) | Created by the pane with `useState`; streams with `response.body.getReader()` |
 | `quinn/quinn-logo.component.ts` | `quinn/QuinnLogo.tsx` | |
 | `quinn/markdown.pipe.ts` + `link-people.pipe.ts` | `quinn/markdown.ts` (`renderAnswer`) | One function; now sanitizes with DOMPurify |

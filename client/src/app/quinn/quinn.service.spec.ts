@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 
 import { environment } from '../../environments/environment';
 import { setTokenSource } from '../core/services/api-fetch';
+import { EventAggregator } from '../core/services/event-aggregator';
 import { QuinnConversation } from './quinn.service';
 
 /**
@@ -10,6 +11,7 @@ import { QuinnConversation } from './quinn.service';
  */
 describe('QuinnConversation', () => {
   let quinn: QuinnConversation;
+  let events: EventAggregator;
 
   /** A streamed answer, as `api/agent/chat` sends it: one JSON object per line. */
   const stream = (...updates: object[]) => updates.map((u) => JSON.stringify(u)).join('\n') + '\n';
@@ -33,10 +35,14 @@ describe('QuinnConversation', () => {
 
   beforeEach(() => {
     setTokenSource(null);
-    quinn = new QuinnConversation(() => ({
-      username: 'anna@harbor.test',
-      tenantName: 'Harbor Staffing',
-    }));
+    events = new EventAggregator();
+    quinn = new QuinnConversation(
+      () => ({
+        username: 'anna@harbor.test',
+        tenantName: 'Harbor Staffing',
+      }),
+      events,
+    );
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -171,6 +177,227 @@ describe('QuinnConversation', () => {
 
       expect(fetch).not.toHaveBeenCalled();
       expect(quinn.getState().messages.filter((m) => m.role === 'user')).toEqual([]);
+    });
+  });
+  describe('questions from a tool', () => {
+    const choices = [
+      { value: 'home', label: 'Home Address: 1 Main St, Seattle, WA 98101' },
+      { value: 'work', label: 'Work Address: 200 Pine St, Portland, OR 97204' },
+    ];
+
+    /** The answers posted to `api/agent/answer`, and how the server replies to them. */
+    let answers: unknown[];
+    let answerStatus: number;
+
+    /**
+     * Starts a question with an answer stream that stays open: `send` streams more lines, `finish`
+     * ends it.  The answers to the tool's questions go to `api/agent/answer` meanwhile.
+     */
+    function start(...updates: object[]) {
+      answers = [];
+      answerStatus = 200;
+      let controller!: ReadableStreamDefaultController<Uint8Array>;
+      const body = new ReadableStream<Uint8Array>({ start: (c) => void (controller = c) });
+      const encoder = new TextEncoder();
+      const send = (...more: object[]) => controller.enqueue(encoder.encode(stream(...more)));
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init: RequestInit) => {
+          if (url === `${environment.agentApiRoot}/answer`) {
+            answers.push(JSON.parse(init.body as string));
+            return new Response(null, { status: answerStatus });
+          }
+          expect(url).toBe(`${environment.agentApiRoot}/chat`);
+          return new Response(body);
+        }),
+      );
+
+      const answered = quinn.ask("Change Ann Lee's address to 12 Elm St, Tacoma");
+      send(...updates);
+      return {
+        answered,
+        finish: (...more: object[]) => {
+          send(...more);
+          controller.close();
+          return answered;
+        },
+      };
+    }
+
+    const question = () => quinn.getState().messages.find((m) => m.question)!;
+
+    /** Lets the stream's lines arrive. */
+    const settle = () => vi.waitFor(() => expect(question()).toBeDefined());
+
+    it('shows a choice, and sends the choice the user makes to the tool', async () => {
+      const { finish } = start(
+        { type: 'text', content: 'Let me check.' },
+        { type: 'input', id: 'q1', content: '**Ann Lee** has 2 addresses. Which one?', choices },
+      );
+      await settle();
+
+      expect(question()).toEqual(
+        expect.objectContaining({
+          content: '**Ann Lee** has 2 addresses. Which one?',
+          question: { id: 'q1', choices, state: 'open' },
+        }),
+      );
+      // Waiting for the user, not for the model.
+      expect(quinn.getState().thinking).toBe(false);
+
+      // OK needs a choice first.
+      await quinn.answer(question().id, true);
+      expect(answers).toEqual([]);
+
+      quinn.select(question().id, 'work');
+      await quinn.answer(question().id, true);
+
+      expect(answers).toEqual([{ id: 'q1', accept: true, choice: 'work' }]);
+      expect(question().question).toEqual(
+        expect.objectContaining({ state: 'accepted', selected: 'work' }),
+      );
+      expect(quinn.getState().thinking).toBe(true);
+
+      await finish({ type: 'text', content: 'Now the new address.' }, { type: 'done' });
+
+      // The text before the question, the question, and the text after it, in that order.
+      expect(
+        quinn
+          .getState()
+          .messages.filter((m) => m.role === 'assistant')
+          .map((m) => m.content),
+      ).toEqual([
+        'Let me check.',
+        '**Ann Lee** has 2 addresses. Which one?',
+        'Now the new address.',
+      ]);
+    });
+
+    it('sends a confirmation or a cancellation, without a choice', async () => {
+      const { finish } = start({ type: 'input', id: 'q2', content: 'Update **Ann Lee**?' });
+      await settle();
+
+      await quinn.answer(question().id, false);
+
+      expect(answers).toEqual([{ id: 'q2', accept: false }]);
+      expect(question().question?.state).toBe('cancelled');
+      await finish({ type: 'text', content: 'Nothing was changed.' }, { type: 'done' });
+    });
+
+    it('closes a question that can no longer be answered', async () => {
+      const { finish } = start({ type: 'input', id: 'q3', content: 'Update **Ann Lee**?' });
+      await settle();
+
+      await finish(
+        { type: 'inputClosed', id: 'q3' },
+        { type: 'text', content: 'Nothing was changed.' },
+        { type: 'done' },
+      );
+
+      expect(question().question?.state).toBe('closed');
+      await quinn.answer(question().id, true);
+      expect(answers).toEqual([]);
+    });
+
+    it('shows a question the server no longer has as closed', async () => {
+      const { finish } = start({ type: 'input', id: 'q4', content: 'Update **Ann Lee**?' });
+      await settle();
+      answerStatus = 404;
+
+      await quinn.answer(question().id, true);
+
+      expect(question().question?.state).toBe('closed');
+      await finish({ type: 'done' });
+    });
+
+    it('leaves the questions out of the conversation it sends', async () => {
+      const { finish } = start({ type: 'input', id: 'q5', content: 'Update **Ann Lee**?' });
+      await settle();
+      await finish(
+        { type: 'inputClosed', id: 'q5' },
+        { type: 'text', content: 'Nothing was changed.' },
+        { type: 'done' },
+      );
+
+      let sent: unknown;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (_url: string, init: RequestInit) => {
+          sent = JSON.parse(init.body as string);
+          return new Response(
+            stream({ type: 'text', content: 'You are welcome.' }, { type: 'done' }),
+          );
+        }),
+      );
+      await quinn.ask('Thanks');
+
+      expect(sent).toEqual({
+        messages: [
+          { role: 'user', content: "Change Ann Lee's address to 12 Elm St, Tacoma" },
+          { role: 'assistant', content: 'Nothing was changed.' },
+          { role: 'user', content: 'Thanks' },
+        ],
+      });
+    });
+  });
+  describe('changes a tool saved', () => {
+    const change = {
+      entityType: 'Address',
+      id: 'a1',
+      staffingResourceId: 'n1',
+      summary: "Updated Nancy Lynn Davolio's Home Address from 1 Main St to 2 Pine St.",
+    };
+
+    it('announces them as a save, so the screens that show them refresh', async () => {
+      await ask(
+        "Change Nancy's address",
+        stream(
+          { type: 'saved', changes: [change] },
+          { type: 'text', content: 'Done.' },
+          { type: 'done' },
+        ),
+      );
+
+      expect(events.lastSave()).toEqual({
+        unitOfWork: null,
+        elsewhere: { by: 'Quinn', staffingResourceIds: ['n1'] },
+      });
+    });
+
+    // The model gets earlier answers without their tool calls; without the record, it took back a
+    // change it had made.
+    it('keeps what was saved with the answer, and sends it back with the conversation', async () => {
+      await ask(
+        "Change Nancy's address",
+        stream(
+          { type: 'text', content: 'Let me do that.' },
+          { type: 'saved', changes: [change] },
+          { type: 'text', content: 'Done.' },
+          { type: 'done' },
+        ),
+      );
+      expect(lastAnswer().saved).toEqual([change.summary]);
+
+      let sent: unknown;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (_url: string, init: RequestInit) => {
+          sent = JSON.parse(init.body as string);
+          return new Response(
+            stream({ type: 'text', content: 'You are welcome.' }, { type: 'done' }),
+          );
+        }),
+      );
+      await quinn.ask('Thanks');
+
+      expect(sent).toEqual({
+        messages: [
+          { role: 'user', content: "Change Nancy's address" },
+          { role: 'assistant', content: 'Let me do that.Done.', saved: [change.summary] },
+          { role: 'user', content: 'Thanks' },
+        ],
+      });
     });
   });
 });

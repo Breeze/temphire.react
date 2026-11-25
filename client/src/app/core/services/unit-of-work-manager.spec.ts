@@ -91,12 +91,12 @@ describe('UnitOfWorkManager', () => {
     const order = orders.get('order-1');
     await order.commit();
     const first = events.lastSave();
-    expect(first?.unitOfWork.deref()).toBe(order);
+    expect(first?.unitOfWork?.deref()).toBe(order);
 
     const invoice = invoices.get('invoice-1');
     await invoice.commit();
     expect(events.lastSave()).not.toBe(first);
-    expect(events.lastSave()?.unitOfWork.deref()).toBe(invoice);
+    expect(events.lastSave()?.unitOfWork?.deref()).toBe(invoice);
     expect(listener).toHaveBeenCalledTimes(2);
   });
 
@@ -112,6 +112,17 @@ describe('UnitOfWorkManager', () => {
     await ordersShared.commit();
     expect(ordersShared.clear).toHaveBeenCalledTimes(1);
     expect(invoicesShared.clear).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops every workspace's shared cache after a change saved elsewhere (Quinn)", () => {
+    const { orders, invoices, events } = setUp();
+    const ordersShared = orders.get(SHARED_UNIT_OF_WORK_KEY);
+    const invoicesShared = invoices.get(SHARED_UNIT_OF_WORK_KEY);
+
+    events.savedElsewhere({ by: 'Quinn', staffingResourceIds: ['n1'] });
+
+    expect(ordersShared.clear).toHaveBeenCalledTimes(1);
+    expect(invoicesShared.clear).toHaveBeenCalledTimes(1);
   });
 
   it('creates no shared unit of work just to clear it', async () => {
