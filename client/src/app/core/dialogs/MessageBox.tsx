@@ -25,6 +25,9 @@ interface MessageBoxProps<T extends string> {
  * this component is simply handed a callback, `onChoose`, as a prop.
  */
 export function MessageBox<T extends string>({ message, buttons, onChoose }: MessageBoxProps<T>) {
+  // Memoized by the React Compiler: plain values only (README, "The React Compiler").
+  'use memo';
+
   return (
     <>
       <Text mb="lg" style={{ whiteSpace: 'pre-line' }}>

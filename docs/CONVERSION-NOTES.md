@@ -100,8 +100,10 @@ unchanged apart from a first line naming where it came from.
 | `resource-mgt/item-selector.component.ts` | `resource-mgt/ItemSelector.tsx` |
 | `resource-mgt/resource-link.ts` | same (copied; one comment updated) |
 | `resource-mgt/sections/resource-contact-info.component.ts` | `resource-mgt/sections/ResourceContactInfo.tsx` + `.css` |
-| `resource-mgt/sections/resource-address-list.component.ts` | `resource-mgt/sections/ResourceAddressList.tsx` + `.css` |
-| `resource-mgt/sections/resource-phone-list.component.ts` | `resource-mgt/sections/ResourcePhoneList.tsx` + `.css` |
+| `resource-mgt/sections/resource-address-list.component.*` | `resource-mgt/sections/ResourceAddressList.tsx` + `.css` |
+| `resource-mgt/sections/resource-address.component.*` | `resource-mgt/sections/ResourceAddress.tsx` + `.css`; its Address 1 autocomplete is `AddressLine1Input.tsx` |
+| `resource-mgt/sections/resource-phone-list.component.*` | `resource-mgt/sections/ResourcePhoneList.tsx` + `.css` |
+| `resource-mgt/sections/resource-phone.component.*` | `resource-mgt/sections/ResourcePhone.tsx` + `.css` |
 | `resource-mgt/sections/resource-rates.component.ts` | `resource-mgt/sections/ResourceRates.tsx` + `.css` |
 | `resource-mgt/sections/resource-work-experience.component.ts` | `resource-mgt/sections/ResourceWorkExperience.tsx` + `.css` |
 | `resource-mgt/sections/resource-skills.component.ts` | `resource-mgt/sections/ResourceSkills.tsx` + `.css` |
@@ -143,6 +145,8 @@ and the pane's effect calls `tick()` every 30 seconds.
 | `usage/usage.component.spec.ts` | `usage/Usage.spec.tsx` |
 | `usage/usage.model.spec.ts` | same (copied) |
 | `resource-mgt/sections/resource-address-list.component.spec.ts` | `resource-mgt/sections/ResourceAddressList.spec.tsx` |
+| `resource-mgt/sections/resource-address.component.spec.ts` | `resource-mgt/sections/ResourceAddress.spec.tsx`; its address completion tests are in `AddressLine1Input.spec.tsx` |
+| `resource-mgt/sections/resource-phone.component.spec.ts` | `resource-mgt/sections/ResourcePhone.spec.tsx` |
 | - | `test-setup.ts`, `test-utils.tsx` |
 
 ## 3. Choices made in the conversion
@@ -158,6 +162,10 @@ and the pane's effect calls `tick()` every 30 seconds.
   `useSyncExternalStore` through a ten-line base class (`ChangeNotifier`). Zustand or Redux would
   be reasonable for a larger app; here they would add a dependency without removing any code.
 - **Vite** builds and serves the app, as the Angular CLI did (it uses Vite internally, too).
+- **The React Compiler, for some components.**  It memoizes the components marked
+  `'use memo'` (annotation mode): the ones that take plain values.  None that render Breeze
+  entities, which it would show stale, since it decides what changed by object identity; see the
+  README's "The React Compiler".
 - **No direct access to the `EntityManager`**, as in the Angular client: components and hooks work
   with data only through the unit of work (its repositories, factories, services, `commit()` and
   `rollback()`) and the validation entity store.  The `entityManager` getter both clients

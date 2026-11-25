@@ -146,6 +146,35 @@ explains each point.
   `showError` that way; components catch only an error they act on, such as rolling back a
   failed delete.
 
+### The React Compiler
+
+The [React Compiler](https://react.dev/learn/react-compiler) memoizes components at build time: it
+adds what `useMemo`, `useCallback` and `React.memo` would add by hand, so a value, a callback or a
+stretch of JSX is reused while its inputs are unchanged.  TempHire runs it through Babel
+(`vite.config.ts`) in **annotation mode**: only a component that starts with the `'use memo'`
+directive is compiled.
+
+| Compiled | Not compiled |
+|---|---|
+| `Home`, `FrameworkMark`, `QuinnLogo`, `MessageBox`, `ResourceSearch` (its rows are plain DTOs), `Usage` (plain data from the API), `Quinn` (its conversation is a new snapshot on every change) | The resource screen, its sections and cards, the `Entity*` inputs, `AddressLine1Input`, the name editor and `ItemSelector`: they render Breeze entities.  The providers and the app shell: they hold mutable services. |
+
+**Why not the components that render Breeze entities.**  The compiler decides what changed by object
+identity, and assumes props and state are never changed in place.  Breeze entities are changed in
+place: `address.city = 'Spokane'` changes the same `address` object, and the component re-renders
+because `useUnitOfWork` says an entity changed, then reads the new value.  A compiled component
+sees the same `address` it saw before and reuses what it built from it.  This was tried: with
+`'use memo'` in the address card, the card still re-renders, but it shows the old city, and
+`ResourceAddress.spec.tsx` fails ("expected 'Tacoma' to be 'Spokane'").  The compiler raises no
+error for it, so nothing but a test would catch it.  Compiling those components would mean giving
+them immutable snapshots of the entities, or the unit of work's version as a prop, which would
+change how the client works for a speed-up its screens don't need.
+
+**Marking another component.**  Add `'use memo'` only to a component whose props are plain values
+and whose state changes by replacement: never one that takes an entity, a unit of work, or a
+service object that changes in place.  `panicThreshold: 'all_errors'` fails the build if the
+compiler can't compile a marked component, so a mark is never silently ignored.  The `react-hooks`
+lint rules, written for the compiler, check every component either way.
+
 ### Entity classes are generated
 
 The classes in `client/src/app/core/model` are generated from the server's model by Breeze's

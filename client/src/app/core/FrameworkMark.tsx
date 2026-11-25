@@ -8,6 +8,9 @@ import './FrameworkMark.css';
  * Purely decorative, like the orb itself.
  */
 export function FrameworkMark() {
+  // Memoized by the React Compiler: plain values only (README, "The React Compiler").
+  'use memo';
+
   return (
     <span className="framework-mark">
       <svg viewBox="-11.5 -10.23174 23 20.46348" aria-hidden="true" focusable="false">

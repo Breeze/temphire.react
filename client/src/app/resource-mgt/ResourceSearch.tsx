@@ -43,6 +43,9 @@ interface ResourceSearchProps {
  * ignores a response that arrives after newer params have taken over.
  */
 export function ResourceSearch({ selectedId, onSelectionChange, ref }: ResourceSearchProps) {
+  // Memoized by the React Compiler: plain values only (README, "The React Compiler").
+  'use memo';
+
   const { resourceMgtUnitOfWorkManager: unitOfWorkManager, events } = useServices();
   /** The latest save anywhere - port of `IHandle<SavedMessage>`.  A new one means "load". */
   const lastSave = useLastSave(events);

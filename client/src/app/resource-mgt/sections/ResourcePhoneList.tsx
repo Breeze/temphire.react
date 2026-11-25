@@ -1,23 +1,21 @@
-import { ValidationForm, useEntityStoreValidation, useShownErrors, useValidationService } from 'ideablade-validation/react';
-import { Alert, Button, Radio } from '@mantine/core';
+import { useEntityStoreValidation, useShownErrors } from 'ideablade-validation/react';
+import { Alert, Button } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
-import { PhoneNumber, PhoneNumberType } from '../../core/model';
-import { formatPhoneNumber } from '../../core/model/phone-number';
+import type { PhoneNumberType } from '../../core/model';
 import { useUnitOfWork } from '../../core/hooks/use-unit-of-work';
 import { openDialog } from '../../core/services/dialog.service';
-import { EntityTextInput } from '../../core/validation/EntityFields';
 import { ItemSelector } from '../ItemSelector';
 import type { SectionProps } from '../ResourceDetail';
+import { ResourcePhone } from './ResourcePhone';
 import './ResourcePhoneList.css';
 
 /**
- * One card per phone number - type, number, primary flag, Delete - and an Add button.  The area
- * code is part of the number, which is rewritten as `(206) 555-1234` when the user leaves the field
- * (`formatNumber`).
+ * The resource's phone numbers, one card each (`ResourcePhone`), with an Add button above them and
+ * the resource's "at least one phone number" rule when it is broken.
  *
  * Port of the Angular client's `resource-mgt/sections/resource-phone-list.component.ts` (and before
- * it of `StaffingResourcePhoneListViewModel.cs` + `StaffingResourcePhoneItemViewModel.cs`).
+ * it of `StaffingResourcePhoneListViewModel.cs`).
  */
 export function ResourcePhoneList({ staffingResource, readOnly, unitOfWork }: SectionProps) {
   useUnitOfWork(unitOfWork);
@@ -34,36 +32,6 @@ export function ResourcePhoneList({ staffingResource, readOnly, unitOfWork }: Se
       (error) => error.model === staffingResource && error.id === 'PHONE_NUMBER_REQUIRED',
     ),
   );
-
-  /**
-   * Port of `StaffingResourcePhoneItemViewModel.CanDelete`, without its "not the primary one, not
-   * the last one" condition, as in the address list.
-   */
-  const canDelete = (_phoneNumber: PhoneNumber) => !readOnly;
-
-  const validationService = useValidationService();
-
-  /**
-   * Rewrites the number as `(206) 555-1234` when the user leaves the field, if it is valid: if the
-   * field's own rules pass, checked now rather than read from the store's validation, which can be
-   * a tick behind the last keystroke.  An invalid number stays as typed, for the user to correct.
-   */
-  function formatNumber(phoneNumber: PhoneNumber): void {
-    if (readOnly) {
-      return;
-    }
-
-    const errors = validationService.validateModelSync(phoneNumber, 'PhoneNumber', {
-      predicate: (_validator, property) => property?.propertyName === 'number',
-    });
-    const formatted = errors.length ? undefined : formatPhoneNumber(phoneNumber.number);
-    if (formatted && formatted !== phoneNumber.number) {
-      phoneNumber.number = formatted;
-    }
-  }
-
-  /** Port of `StaffingResourcePhoneItemViewModel.CanSetPrimary`. */
-  const canSetPrimary = (phoneNumber: PhoneNumber) => !readOnly && !phoneNumber.primary;
 
   /**
    * Port of `StaffingResourcePhoneListViewModel.Add`.  Phone number types have no `displayName`, so
@@ -111,37 +79,13 @@ export function ResourcePhoneList({ staffingResource, readOnly, unitOfWork }: Se
 
       <div className="phones__cards">
         {phoneNumbers.map((phoneNumber) => (
-          <div key={phoneNumber.id} className="phone temphire-elevated">
-            <span className="phone__type">{phoneNumber.phoneNumberType?.name}</span>
-            <ValidationForm model={phoneNumber}>
-              <EntityTextInput
-                className="phone__number"
-                aria-label="Phone number"
-                type="tel"
-                placeholder="(206) 555-1234"
-                entity={phoneNumber}
-                property="number"
-                readOnly={readOnly}
-                onBlur={() => formatNumber(phoneNumber)}
-              />
-            </ValidationForm>
-            <Radio
-              name="primary-phone-number"
-              label="Primary"
-              checked={phoneNumber.primary}
-              disabled={!canSetPrimary(phoneNumber)}
-              onChange={() => staffingResource.setPrimaryPhoneNumber(phoneNumber)}
-            />
-            <Button
-              size="xs"
-              color="red"
-              variant="outline"
-              disabled={!canDelete(phoneNumber)}
-              onClick={() => staffingResource.deletePhoneNumber(phoneNumber)}
-            >
-              Delete
-            </Button>
-          </div>
+          <ResourcePhone
+            key={phoneNumber.id}
+            phoneNumber={phoneNumber}
+            staffingResource={staffingResource}
+            readOnly={readOnly}
+            unitOfWork={unitOfWork}
+          />
         ))}
       </div>
     </div>

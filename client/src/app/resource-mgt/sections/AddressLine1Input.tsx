@@ -30,7 +30,7 @@ function writeAddress1(address: Address, value: string): void {
  * Address 1, with address completion: as the user types, it suggests U.S. addresses that start that
  * way, and picking one fills the address form (`fillAddress`).
  *
- * Port of the Angular client's `p-autocomplete` in `resource-address-list.component.ts`.  Mantine's
+ * Port of the Angular client's `p-autocomplete` in `resource-address.component.html`.  Mantine's
  * `Autocomplete` shows the suggestions; this asks for them after a pause in the typing, keeps only
  * the answer to the latest text, and shows the data's credit under the field while there are some.
  * Like `EntityTextInput`, it writes what the user types to the entity and reports its touches.

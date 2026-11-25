@@ -32,7 +32,7 @@ function newAddress(values: Partial<Address> = {}): Address {
 
 /**
  * Port of the address completion tests in the Angular client's
- * `resource-address-list.component.spec.ts`, and the field that asks for the suggestions.
+ * `resource-address.component.spec.ts`, and the field that asks for the suggestions.
  */
 describe('fillAddress', () => {
   it('fills the address with the suggestion, and clears what it does not know', () => {
