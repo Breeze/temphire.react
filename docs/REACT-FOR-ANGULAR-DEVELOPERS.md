@@ -606,10 +606,10 @@ do the same for a card: a change made outside it must show.
 Where a component assigns to an entity property directly, the `react-hooks/immutability` rule
 objects; the one such place, the name editor's result in `ResourceSummary`, disables the rule for
 those lines with a comment saying why. (The `Entity*` inputs write through a small helper, which the
-rule does not look into.) TempHire does not use the
-[React Compiler](https://react.dev/learn/react-compiler), the optimizing compiler these rules were
-written for; it assumes props are not mutated, so an app that wanted it would need to check how it
-treats components that read mutable Breeze entities before turning it on.
+rule does not look into.) The [React Compiler](https://react.dev/learn/react-compiler), the
+optimizing compiler these rules were written for, assumes props are not mutated, so TempHire
+compiles only the components that take plain values (annotation mode, `'use memo'`) and none that
+render Breeze entities; the README's "The React Compiler" says which and why.
 
 ---
 

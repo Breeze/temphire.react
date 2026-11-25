@@ -9,6 +9,9 @@
  * `stroke-width`, `className` for `class`.
  */
 export function QuinnLogo({ className }: { className?: string }) {
+  // Memoized by the React Compiler: plain values only (README, "The React Compiler").
+  'use memo';
+
   return (
     <span className={`quinn-logo ${className ?? ''}`}>
       <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">

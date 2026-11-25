@@ -162,6 +162,10 @@ and the pane's effect calls `tick()` every 30 seconds.
   `useSyncExternalStore` through a ten-line base class (`ChangeNotifier`). Zustand or Redux would
   be reasonable for a larger app; here they would add a dependency without removing any code.
 - **Vite** builds and serves the app, as the Angular CLI did (it uses Vite internally, too).
+- **The React Compiler, for some components.**  It memoizes the components marked
+  `'use memo'` (annotation mode): the ones that take plain values.  None that render Breeze
+  entities, which it would show stale, since it decides what changed by object identity; see the
+  README's "The React Compiler".
 - **No direct access to the `EntityManager`**, as in the Angular client: components and hooks work
   with data only through the unit of work (its repositories, factories, services, `commit()` and
   `rollback()`) and the validation entity store.  The `entityManager` getter both clients

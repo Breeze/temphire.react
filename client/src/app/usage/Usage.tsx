@@ -78,6 +78,9 @@ const when = new Intl.DateTimeFormat('en-US', {
  * request was started - the job `httpResource` did by itself.
  */
 export function Usage() {
+  // Memoized by the React Compiler: plain values only (README, "The React Compiler").
+  'use memo';
+
   const [usage, setUsage] = useState<UsageDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

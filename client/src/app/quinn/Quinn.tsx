@@ -28,6 +28,9 @@ import { QuinnLogo } from './QuinnLogo';
  * the newest message into view and put the cursor back in the question box.
  */
 export function Quinn() {
+  // Memoized by the React Compiler: plain values only (README, "The React Compiler").
+  'use memo';
+
   const { auth } = useServices();
   const session = useAuth();
   const navigate = useNavigate();

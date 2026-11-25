@@ -19,6 +19,9 @@ import './Home.css';
  * `Button` rendered *as* React Router's `Link` (`component={Link}`).
  */
 export function Home() {
+  // Memoized by the React Compiler: plain values only (README, "The React Compiler").
+  'use memo';
+
   return (
     <div className="home">
       <section className="hero">
