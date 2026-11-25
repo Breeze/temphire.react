@@ -156,7 +156,7 @@ directive is compiled.
 
 | Compiled | Not compiled |
 |---|---|
-| `Home`, `FrameworkMark`, `QuinnLogo`, `MessageBox`, `ResourceSearch` (its rows are plain DTOs), `Usage` (plain data from the API), `Quinn` (its conversation is a new snapshot on every change) | The resource screen, its sections and cards, the `Entity*` inputs, `AddressLine1Input`, the name editor and `ItemSelector`: they render Breeze entities.  The providers and the app shell: they hold mutable services. |
+| `Home`, `FrameworkMark`, `QuinnLogo`, `MessageBox`, `ResourceSearch` (its rows are plain DTOs), `Usage` (plain data from the API), `Quinn` (its conversation is a new snapshot on every change), `QuinnQuestion` (a question from that snapshot) | The resource screen, its sections and cards, the `Entity*` inputs, `AddressLine1Input`, the name editor and `ItemSelector`: they render Breeze entities.  The providers and the app shell: they hold mutable services. |
 
 **Why not the components that render Breeze entities.**  The compiler decides what changed by object
 identity, and assumes props and state are never changed in place.  Breeze entities are changed in
@@ -197,6 +197,14 @@ about your company's staffing data in plain language. The people Quinn mentions 
 open them in Resource Management. Quinn runs in the server, which exposes the data as an MCP server
 at `/mcp`; it calls the tools with your own access token, so it sees only your company's data, and
 only if your role allows.
+
+An **editor** can also ask Quinn to change an existing address of a staffing resource, an
+experiment in letting Quinn change data.  If the person has several addresses, or the address
+service finds several matches, the pane shows them as radio buttons with OK and Cancel; before
+anything is saved, it shows the current and the new address with Confirm and Cancel
+(`QuinnQuestion`).  Those questions come from the server's tools, and the user answers them, not
+Quinn: see
+[Changing an address through Quinn](https://github.com/Breeze/temphire.server#changing-an-address-through-quinn).
 
 The `Agent` section of `server/TempHire.Server/appsettings.json` picks the model: **Ollama**
 (default, local) or **Claude**.

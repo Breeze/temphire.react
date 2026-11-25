@@ -8,6 +8,7 @@ import { renderAnswer } from './markdown';
 import './Quinn.css';
 import { EXAMPLE_QUESTIONS, QuinnConversation } from './quinn.service';
 import { QuinnLogo } from './QuinnLogo';
+import { QuinnQuestion } from './QuinnQuestion';
 
 /**
  * Quinn, the TempHire assistant: a round launcher button in the bottom right corner, and a chat
@@ -179,11 +180,24 @@ export function Quinn() {
             <div key={message.id}>
               <div className={`quinn-message quinn-message--${message.role}`}>
                 {message.role !== 'user' && <QuinnLogo className="quinn-message__avatar" />}
-                <div
-                  className="quinn-message__bubble quinn-md"
-                  // Sanitized in `renderAnswer`; see there.
-                  dangerouslySetInnerHTML={{ __html: renderAnswer(message.content, message.people) }}
-                />
+                {message.question ? (
+                  // A tool's question: answered here, not by Quinn.
+                  <QuinnQuestion
+                    content={message.content}
+                    people={message.people}
+                    question={message.question}
+                    onSelect={(value) => conversation.select(message.id, value)}
+                    onAnswer={(accept) => void conversation.answer(message.id, accept)}
+                  />
+                ) : (
+                  <div
+                    className="quinn-message__bubble quinn-md"
+                    // Sanitized in `renderAnswer`; see there.
+                    dangerouslySetInnerHTML={{
+                      __html: renderAnswer(message.content, message.people),
+                    }}
+                  />
+                )}
               </div>
 
               {message.intro && (
