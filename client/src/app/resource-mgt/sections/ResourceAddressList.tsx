@@ -1,24 +1,21 @@
-import { ValidationForm, useEntityStoreValidation, useShownErrors } from 'ideablade-validation/react';
-import { Alert, Button, Radio } from '@mantine/core';
+import { useEntityStoreValidation, useShownErrors } from 'ideablade-validation/react';
+import { Alert, Button } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 
-import { Address, AddressType } from '../../core/model';
+import type { AddressType } from '../../core/model';
 import { useUnitOfWork } from '../../core/hooks/use-unit-of-work';
 import { openDialog } from '../../core/services/dialog.service';
-import { EntitySelect, EntityTextInput } from '../../core/validation/EntityFields';
 import { ItemSelector } from '../ItemSelector';
-import { AddressLine1Input } from './AddressLine1Input';
 import type { SectionProps } from '../ResourceDetail';
+import { ResourceAddress } from './ResourceAddress';
 import './ResourceAddressList.css';
 
 /**
- * One editable card per address, with the address type as its heading, and an Add button above.
+ * The resource's addresses, one card each (`ResourceAddress`), with an Add button above them and
+ * the resource's "at least one address" rule when it is broken.
  *
  * Port of the Angular client's `resource-mgt/sections/resource-address-list.component.ts` (and
- * before it of `StaffingResourceAddressListViewModel.cs` + `StaffingResourceAddressItemViewModel.cs`).
- * The "Set Primary" button of the original is a radio, which is what the mutually exclusive flag
- * is; the states come from the cache, which was seeded at sign-in.  Address 1 suggests U.S.
- * addresses as the user types (`AddressLine1Input`), which the original didn't.
+ * before it of `StaffingResourceAddressListViewModel.cs`).
  *
  * `useUnitOfWork` re-renders this list whenever an entity in the unit of work changes: Breeze
  * changes `staffingResource.addresses` in place when an address is added or deleted, which React
@@ -28,10 +25,6 @@ export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: 
   useUnitOfWork(unitOfWork);
 
   const addresses = [...staffingResource.addresses];
-  // Read from the cache on every render; cheap, since the states are already in memory.
-  const states = unitOfWork.states
-    .allInCache('name')
-    .map((state) => ({ value: state.id, label: state.name }));
 
   /**
    * The resource's "at least one address" rule, when it is broken.  It is a rule of the validation
@@ -48,16 +41,6 @@ export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: 
       (error) => error.model === staffingResource && error.id === 'ADDRESS_REQUIRED',
     ),
   );
-
-  /**
-   * Port of `StaffingResourceAddressItemViewModel.CanDelete`, without its "not the primary one, not
-   * the last one" condition.  The last address may go too: the user then sees the resource's rule
-   * broken, and cannot save until they add one.
-   */
-  const canDelete = (_address: Address) => !readOnly;
-
-  /** Port of `StaffingResourceAddressItemViewModel.CanSetPrimary`. */
-  const canSetPrimary = (address: Address) => !readOnly && !address.primary;
 
   /** Port of `StaffingResourceAddressListViewModel.Add`: pick a type, then create the address. */
   async function add(): Promise<void> {
@@ -102,80 +85,13 @@ export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: 
 
       <div className="addresses__cards">
         {addresses.map((address) => (
-          <div key={address.id} className="address temphire-elevated">
-            <div className="address__header">{address.addressType?.displayName}</div>
-
-            <div className="address__body">
-              {/* Validates the address as a whole; each input shows the errors about its property. */}
-              <ValidationForm model={address}>
-                <div className="address__fields">
-                  <label htmlFor={`address1-${address.id}`}>Address 1:</label>
-                  <AddressLine1Input
-                    id={`address1-${address.id}`}
-                    address={address}
-                    stateIds={states.map((state) => state.value)}
-                    readOnly={readOnly}
-                  />
-
-                  <label htmlFor={`address2-${address.id}`}>Address 2:</label>
-                  <EntityTextInput
-                    id={`address2-${address.id}`}
-                    entity={address}
-                    property="address2"
-                    readOnly={readOnly}
-                  />
-
-                  <label htmlFor={`city-${address.id}`}>City:</label>
-                  <EntityTextInput
-                    id={`city-${address.id}`}
-                    entity={address}
-                    property="city"
-                    readOnly={readOnly}
-                  />
-
-                  <label htmlFor={`state-${address.id}`}>State:</label>
-                  <EntitySelect
-                    id={`state-${address.id}`}
-                    entity={address}
-                    property="stateId"
-                    data={states}
-                    disabled={readOnly}
-                    searchable
-                    className="address__state"
-                  />
-
-                  <label htmlFor={`zipcode-${address.id}`}>Zipcode:</label>
-                  <EntityTextInput
-                    id={`zipcode-${address.id}`}
-                    className="address__zipcode"
-                    entity={address}
-                    property="zipcode"
-                    readOnly={readOnly}
-                  />
-                </div>
-              </ValidationForm>
-
-              <div className="address__actions">
-                <Radio
-                  name="primary-address"
-                  label="Primary"
-                  checked={address.primary}
-                  disabled={!canSetPrimary(address)}
-                  onChange={() => staffingResource.setPrimaryAddress(address)}
-                />
-
-                <Button
-                  size="xs"
-                  color="red"
-                  variant="outline"
-                  disabled={!canDelete(address)}
-                  onClick={() => staffingResource.deleteAddress(address)}
-                >
-                  Delete
-                </Button>
-              </div>
-            </div>
-          </div>
+          <ResourceAddress
+            key={address.id}
+            address={address}
+            staffingResource={staffingResource}
+            readOnly={readOnly}
+            unitOfWork={unitOfWork}
+          />
         ))}
       </div>
     </div>

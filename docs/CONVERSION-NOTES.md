@@ -100,8 +100,10 @@ unchanged apart from a first line naming where it came from.
 | `resource-mgt/item-selector.component.ts` | `resource-mgt/ItemSelector.tsx` |
 | `resource-mgt/resource-link.ts` | same (copied; one comment updated) |
 | `resource-mgt/sections/resource-contact-info.component.ts` | `resource-mgt/sections/ResourceContactInfo.tsx` + `.css` |
-| `resource-mgt/sections/resource-address-list.component.ts` | `resource-mgt/sections/ResourceAddressList.tsx` + `.css` |
-| `resource-mgt/sections/resource-phone-list.component.ts` | `resource-mgt/sections/ResourcePhoneList.tsx` + `.css` |
+| `resource-mgt/sections/resource-address-list.component.*` | `resource-mgt/sections/ResourceAddressList.tsx` + `.css` |
+| `resource-mgt/sections/resource-address.component.*` | `resource-mgt/sections/ResourceAddress.tsx` + `.css`; its Address 1 autocomplete is `AddressLine1Input.tsx` |
+| `resource-mgt/sections/resource-phone-list.component.*` | `resource-mgt/sections/ResourcePhoneList.tsx` + `.css` |
+| `resource-mgt/sections/resource-phone.component.*` | `resource-mgt/sections/ResourcePhone.tsx` + `.css` |
 | `resource-mgt/sections/resource-rates.component.ts` | `resource-mgt/sections/ResourceRates.tsx` + `.css` |
 | `resource-mgt/sections/resource-work-experience.component.ts` | `resource-mgt/sections/ResourceWorkExperience.tsx` + `.css` |
 | `resource-mgt/sections/resource-skills.component.ts` | `resource-mgt/sections/ResourceSkills.tsx` + `.css` |
@@ -143,6 +145,8 @@ and the pane's effect calls `tick()` every 30 seconds.
 | `usage/usage.component.spec.ts` | `usage/Usage.spec.tsx` |
 | `usage/usage.model.spec.ts` | same (copied) |
 | `resource-mgt/sections/resource-address-list.component.spec.ts` | `resource-mgt/sections/ResourceAddressList.spec.tsx` |
+| `resource-mgt/sections/resource-address.component.spec.ts` | `resource-mgt/sections/ResourceAddress.spec.tsx`; its address completion tests are in `AddressLine1Input.spec.tsx` |
+| `resource-mgt/sections/resource-phone.component.spec.ts` | `resource-mgt/sections/ResourcePhone.spec.tsx` |
 | - | `test-setup.ts`, `test-utils.tsx` |
 
 ## 3. Choices made in the conversion

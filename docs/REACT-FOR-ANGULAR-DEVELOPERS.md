@@ -69,20 +69,24 @@ An Angular component is a class with a decorator, a template and styles. A React
 @Component({
   selector: 'app-message-box',
   imports: [ButtonDirective],
-  template: `
-    <p class="message-box__text">{{ data.message }}</p>
-    <div class="message-box__buttons">
-      @for (button of data.buttons; track button.value) {
-        <button pButton type="button" (click)="close(button.value)">{{ button.label }}</button>
-      }
-    </div>
-  `,
+  templateUrl: './message-box.component.html',
+  styleUrl: './message-box.component.css',
 })
 export class MessageBoxComponent {
   private readonly ref = inject(DynamicDialogRef);
   readonly data: MessageBoxData = inject(DynamicDialogConfig).data;
   close(value: string): void { this.ref.close(value); }
 }
+```
+
+```html
+<!-- Angular: core/dialogs/message-box.component.html -->
+<p class="message-box__text">{{ data.message }}</p>
+<div class="message-box__buttons">
+  @for (button of data.buttons; track button.value) {
+    <button pButton type="button" (click)="close(button.value)">{{ button.label }}</button>
+  }
+</div>
 ```
 
 ```tsx
@@ -108,6 +112,10 @@ Things to notice:
 - **No selector, no `imports` array.** A component is used by importing the function and writing
   `<MessageBox ... />`. Its name starts with a capital letter; that is how JSX tells components
   from HTML elements.
+- **The markup stays in the function.** Angular keeps a template in its own file; React doesn't.
+  JSX is TypeScript, with the props, state and hooks in scope, so a component's JSX is in the same
+  `.tsx` file as the function that returns it. That is how nearly all React code is written, not a
+  shortcut. What does go in a file of its own is the styling: each component imports its `.css`.
 - **No injection.** The Angular box injected `DynamicDialogRef` to close itself and
   `DynamicDialogConfig` for its data. The React box is simply *given* what it needs as props:
   the message, the buttons and a callback, `onChoose`.
@@ -571,7 +579,9 @@ TempHire keeps Breeze's model and tells React about the changes:
    `hasChangesChanged` and `validationErrorsChanged` events, bumps a version number, and notifies
    subscribers (`unit-of-work.ts`).
 2. **Components that show entities subscribe to it** with `useUnitOfWork(unitOfWork)`. Every
-   section of the detail screen does; so does `ResourceMgt`, whose `canSave` depends on
+   section of the detail screen does, and so does each address and phone card (`ResourceAddress`,
+   `ResourcePhone`), so a card shows a change made outside it however its list renders; so does
+   `ResourceMgt`, whose `canSave` depends on
    `hasChanges()` and on the continuous validation of the unit of work (`validateEntityStore()`).
 3. **Inputs write straight to the entity** (`EntityFields.tsx`), and the change comes back round
    through the store. The entity stays the single source of truth, as it was with `ngModel`.
@@ -590,7 +600,8 @@ export function ResourceAddressList({ staffingResource, readOnly, unitOfWork }: 
 The Angular version did exactly the same thing with a counter *signal* (`unitOfWork.changes()`)
 read inside `computed`s; the two are one idea. There is a regression test for it,
 `ResourceAddressList.spec.tsx`: an address added after a dialog closes must appear at once. Remove
-the `useUnitOfWork` call and the test fails.
+the `useUnitOfWork` call and the test fails. `ResourceAddress.spec.tsx` and `ResourcePhone.spec.tsx`
+do the same for a card: a change made outside it must show.
 
 Where a component assigns to an entity property directly, the `react-hooks/immutability` rule
 objects; the one such place, the name editor's result in `ResourceSummary`, disables the rule for
