@@ -29,10 +29,6 @@
   font-weight: 700;
 }
 
-.phone__area-code {
-  width: 4rem;
-}
-
 .phone__number {
-  width: 7rem;
+  width: 10rem;
 }
