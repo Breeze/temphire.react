@@ -1,6 +1,13 @@
 import { NotifyingEntityStore } from 'ideablade-validation';
 import { breezeEntityStore } from 'ideablade-validation/breeze';
-import { Entity, EntityManager, InitialValues, SaveOptions } from 'breeze-client';
+import {
+  Entity,
+  EntityAction,
+  EntityManager,
+  EntityState,
+  InitialValues,
+  SaveOptions,
+} from 'breeze-client';
 
 import { ChangeNotifier } from './change-notifier';
 import { EntityManagerProvider } from './entity-manager-provider';
@@ -44,6 +51,11 @@ export class EntityFactory<T extends Entity> implements IEntityFactory<T> {
  *
  * The Angular version did the same with a counter *signal*, read inside `computed`s.  The two are
  * one idea: a version number that changes whenever an entity does.
+ *
+ * **An edit undone is no edit.**  Breeze marks an entity Modified on its first property change and
+ * keeps it Modified when the user types the old value back.  The unit of work returns such an entity
+ * to Unchanged (`unchangedIfReverted`), so Save and Cancel go back to disabled once every field holds
+ * what was loaded again.
  */
 export class UnitOfWork extends ChangeNotifier {
   protected readonly manager: EntityManager;
@@ -87,6 +99,10 @@ export class UnitOfWork extends ChangeNotifier {
     this.manager.entityChanged.subscribe(bump);
     this.manager.hasChangesChanged.subscribe(bump);
     this.manager.validationErrorsChanged.subscribe(bump);
+
+    this.manager.entityChanged.subscribe(({ entityAction, entity }) => {
+      if (entityAction === EntityAction.PropertyChange && entity) unchangedIfReverted(entity);
+    });
   }
 
   /** Whether anything is waiting to be saved - port of `IUnitOfWork.HasChanges`. */
@@ -127,5 +143,19 @@ export class UnitOfWork extends ChangeNotifier {
 
   protected createFactory<T extends Entity>(entityCtor: EntityCtor<T>): IEntityFactory<T> {
     return new EntityFactory(entityCtor, this.manager);
+  }
+}
+
+/**
+ * Returns a Modified entity to Unchanged once none of its properties differs from its original value
+ * any more.  Breeze's `getChangedProperties` does the comparing: dates by time, and complex and array
+ * properties by their contents.  Each entity is judged on its own, so a resource whose fields are back
+ * to their originals is Unchanged even while one of its addresses is still Modified (or Added), and
+ * `hasChanges` stays true for that address.
+ */
+function unchangedIfReverted(entity: Entity): void {
+  const aspect = entity.entityAspect;
+  if (aspect.entityState === EntityState.Modified && aspect.getChangedProperties().length === 0) {
+    aspect.setUnchanged();
   }
 }

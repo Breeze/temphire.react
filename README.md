@@ -131,7 +131,9 @@ explains each point.
   changes. The unit of work bridges the two: it notifies its subscribers whenever an entity in it
   changes, and a component that calls `useUnitOfWork(unitOfWork)` renders again. Inputs bound to an
   entity property (`core/validation/EntityFields.tsx`) write straight to the entity and show its
-  validation errors (see [Validation](#validation)).
+  validation errors (see [Validation](#validation)). An edit typed back to the loaded value is no
+  edit: the unit of work returns the entity to Unchanged, so Save is disabled again and leaving the
+  page doesn't ask.
 - **One fetch for everything.** `apiFetch` attaches the access token, renews it before it expires,
   and signs in again on a 401. Breeze is configured to use it too.
 - **Routing.** React Router loaders check the session and the roles before a page renders - what

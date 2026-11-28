@@ -577,7 +577,8 @@ TempHire keeps Breeze's model and tells React about the changes:
 
 1. **The unit of work is an external store.** It listens to its manager's `entityChanged`,
    `hasChangesChanged` and `validationErrorsChanged` events, bumps a version number, and notifies
-   subscribers (`unit-of-work.ts`).
+   subscribers (`unit-of-work.ts`). It also returns an entity to Unchanged when the user types
+   its loaded values back (`unchangedIfReverted`), as the Angular unit of work does.
 2. **Components that show entities subscribe to it** with `useUnitOfWork(unitOfWork)`. Every
    section of the detail screen does, and so does each address and phone card (`ResourceAddress`,
    `ResourcePhone`), so a card shows a change made outside it however its list renders; so does
