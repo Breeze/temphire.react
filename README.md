@@ -37,7 +37,7 @@ side by side.
 ## Prerequisites
 
 - [.NET SDK](https://dotnet.microsoft.com/download) 10.0 or later
-- [Node.js](https://nodejs.org) **26.13.0**, pinned in `.node-version` (`nvs auto` picks it up)
+- [Node.js](https://nodejs.org) **26.13.1**, pinned in `.node-version` (`nvs auto` picks it up)
 - SQL Server **LocalDB** (Visual Studio's "Data storage and processing" workload, or SQL Server
   Express), or any SQL Server - see the server's
   [prerequisites](https://github.com/Breeze/temphire.server#prerequisites)
@@ -241,7 +241,7 @@ how usage is counted, and how to change the budgets or the prices - in detail.
 
 ## Validation
 
-> Validation uses IdeaBlade Validation 0.1.0: [`ideablade-validation`](https://www.npmjs.com/package/ideablade-validation)
+> Validation uses IdeaBlade Validation 0.1.1: [`ideablade-validation`](https://www.npmjs.com/package/ideablade-validation)
 > on npm and [`IdeaBlade.Validation`](https://www.nuget.org/packages/IdeaBlade.Validation) on NuGet.
 > As with any 0.x version, its API may still change between minor versions.
 
