@@ -371,6 +371,13 @@ Server, shared with the Angular version.  It lives in its own repository,
 What this version sets differently - the server's URL, its databases and the dev server's origin -
 is in `server.appsettings.json` (see [Next to the Angular version](#next-to-the-angular-version)).
 
+**Architecture diagrams.**  The server repository also documents the whole application as a
+[C4 model](https://github.com/Breeze/temphire.server/blob/main/docs/ARCHITECTURE.md): its system
+context, its containers (both clients, the server, the two databases) and the server's components.
+[Quinn's architecture](https://github.com/Breeze/temphire.server/blob/main/docs/QUINN-ARCHITECTURE.md)
+shows the assistant's components, the flow of a question and of a change, and why it is built that
+way.
+
 The sections of its README:
 
 - [Running it](https://github.com/Breeze/temphire.server#running-it), with the
